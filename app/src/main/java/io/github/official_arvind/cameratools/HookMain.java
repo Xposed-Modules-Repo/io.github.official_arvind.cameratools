@@ -285,6 +285,8 @@ public class HookMain implements IXposedHookLoadPackage {
                 }
             });
         } catch (Throwable ignored) {}
+
+        XposedBridge.log("[" + TAG + "] 4K 60FPS Video Recording hooked successfully");
     }
 
     // ==========================================
