@@ -1,91 +1,57 @@
-# CameraTools (io.github.official_arvind.cameratools)
+<h1 align="center">
+  CameraTools
+</h1>
 
-[![GitHub Release](https://img.shields.io/badge/release-v1.1.0-blue.svg)](https://github.com/official-Arvind/CameraTools/releases)
-[![Target](https://img.shields.io/badge/device-Redmi%20Note%2012%20Pro%205G%20(ruby)-green.svg)](https://github.com/official-Arvind/CameraTools)
-[![Platform](https://img.shields.io/badge/framework-LSPosed%20%7C%20Vector%20Framework-purple.svg)](https://github.com/official-Arvind/CameraTools)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<p align="center">
+  A powerful but simple Xposed module that unlocks hidden camera features on the Xiaomi Redmi Note 12 Pro 5G (ruby).
+</p>
 
-**CameraTools** (`io.github.official_arvind.cameratools`) is an all-in-one Camera & ISP Subsystem enhancement module and configuration manager engineered specifically for the **Xiaomi Redmi Note 12 Pro 5G** (`ruby`, MediaTek Dimensity 1080 / MT6877, Sony IMX766 50MP OIS sensor).
+<p align="center">
+  <img src="https://img.shields.io/badge/Android-13%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 13+">
+  <img src="https://img.shields.io/badge/Xposed-API_93%2B-ff69b4?style=for-the-badge" alt="Xposed API 93+">
+  <img src="https://img.shields.io/github/downloads/official-Arvind/CameraTools/total?style=for-the-badge&logo=github&label=Downloads&cacheSeconds=600" alt="Downloads">
+</p>
 
-It unlocks hardware ISP capabilities, removes software gating in MIUI / HyperOS Camera (`com.android.camera`), and gives users full control via a modern dark-mode Material UI dashboard.
 
----
+## About this module
 
-## ⚡ Features & Subsystems
+Xiaomi software restricts many camera capabilities on mid-range devices. This module bypasses these artificial restrictions by directly hooking into the Xiaomi Camera application at runtime. 
 
-| Feature | Subsystem Hook | Description |
-|---|---|---|
-| ⚡ **4K 60FPS Video Unlock** | `ComponentConfigVideoQuality`, `ComponentConfigVideoSubFPS` | Bypasses MediaTek HAL streaming resolution limits and adds the native 60 FPS toggle switch for 3840×2160 video recording. |
-| 🎬 **Cinematic Ultra Bitrate** | `com.mi.device.Ruby`, `com.mi.device.Common.o0ooOO0` | Unlocks 150 Mbps master-grade HEVC encoding for 4K video (default: ~42 Mbps) and 60 Mbps for 1080p, eliminating compression artifacts and macroblocking. |
-| 📸 **50MP Ultra RAW (DNG)** | `CameraCapabilitiesUtil.isSupportUltraPixelRaw`, `Ruby.OooOo00` | Enables full 50-megapixel uncompressed RAW (.dng) sensor dumps in Pro Mode directly from the Sony IMX766 Quad-Bayer array. |
-| 🔴 **Leica Color Profiles & Watermark** | `CameraCapabilitiesUtil.isSupportCvType`, `isSupportCvWatermark` | Activates Leica Authentic and Leica Vibrant color science tuning profiles, Leica optics simulation, and the branded Leica watermark. |
-| 🎥 **Dual-Camera Concurrent Stream** | `DataItemFeature.isSupportDualVideo`, `CameraCapabilitiesUtil` | Unlocks Director Mode: simultaneous front camera (OmniVision OV16A1Q) and rear camera (Sony IMX766) multi-stream recording. |
-| ⏱️ **Extended Pro Exposure Range** | `CameraCapabilitiesUtil.getExposureTimeRange` | Expands exposure range up to 60 seconds for astrophotography and up to 1/16000s ultra-fast electronic shutter. |
-| ❄️ **Bypass Thermal Warning & Shutdown** | `ThermalDetector`, `ThermalOverheatMultipleASD`, `Camera.dealThermal` | Completely bypasses MIUI / HyperOS thermal alerts, video recording overheat toasts, and forced camera shutdown. Camera never forcefully closes due to high temperatures. |
+Enabling the module allows you to cleanly toggle hidden features without modifying your system files. You can turn on each feature from the CameraTools app, and a toast will confirm if the hook was successful when the Camera app opens.
 
----
+> [!NOTE]
+> Designed specifically for the **Redmi Note 12 Pro 5G (ruby)** running Xiaomi HyperOS or MIUI. While some features may work on other MediaTek Dimensity devices, this module targets the MT6877 camera capabilities.
 
-## 📱 Application Dashboard
+*(For developers wanting to see the technical reverse-engineering notes, please check our ruby reverse engineering repository.)*
 
-The companion app provides interactive toggle cards for each individual feature, real-time preference synchronization via `ContentProvider` IPC across Android 14 process boundaries, and a single-click **Restart Camera** root action button.
+## Features
 
-```
-┌────────────────────────────────────────────────────────┐
-│             CameraTools Settings UI                    │
-│      (io.github.official_arvind.cameratools)           │
-├────────────────────────────────────────────────────────┤
-│  ⚡ 4K 60FPS Video Recording          [ON/OFF]         │
-│  🎬 Cinematic Ultra Bitrate (150Mbps) [ON/OFF]         │
-│  📸 50MP Bayer RAW Capture            [ON/OFF]         │
-│  🔴 Leica Authentic / Vibrant & Mark  [ON/OFF]         │
-│  🎥 Dual-Camera Concurrent Stream     [ON/OFF]         │
-│  ⏱️ Extended Shutter (60s-1/16000s)   [ON/OFF]         │
-│  ❄️ Bypass Thermal Warning & Shutdown  [ON/OFF]         │
-└────────────────────────────────────────────────────────┘
-```
+- **4K 60FPS Video Recording**: Unlocks smooth 4K video recording at 60 frames per second.
+- **Ultra High Video Quality**: Improves video recording quality (150 Mbps bitrate) for clearer videos without compression artifacts.
+- **50MP RAW Photos**: Enables uncompressed 50-megapixel RAW photos in Pro Mode.
+- **50MP Normal Photo**: Forces the standard Photo mode to take full 50-megapixel pictures automatically instead of pixel-binning to 12MP.
+- **Leica Camera Modes**: Adds Leica Authentic and Leica Vibrant camera modes and the official Leica watermark.
+- **Dual-Camera Video**: Record video using the front and rear cameras at the same time.
+- **Pro Mode Long Exposure**: Allows taking very long exposure photos (up to 60 seconds) in Pro Mode for astrophotography.
+- **Disable Overheating Limits**: Stops the camera from closing automatically when the phone gets warm during long video recording sessions.
 
----
+## Requirements
 
-## 🛠️ Architecture
+- Rooted device running Android 13+ (MIUI / HyperOS)
+- LSPosed (or compatible framework like Vector) installed and active
 
-- **Runtime Hooking**: Injects into `com.android.camera` at Zygote startup via LSPosed / Vector Framework.
-- **IPC Architecture**: Uses `PrefProvider` (`content://io.github.official_arvind.cameratools.prefs`) combined with `XSharedPreferences` fallback to ensure zero permission friction under Android 14 SELinux enforcing rules.
-- **Safety**: Fully defensive hooking pattern — each sub-hook is isolated with exception boundaries to prevent system or camera app instability.
+## Install
 
----
+1. Install APK from [Releases](../../releases)
+2. Enable the module in your Xposed manager and ensure the **Camera** (com.android.camera) app is checked in the scope.
+3. Reboot your device (or force-stop the camera if your framework supports hot reload).
+4. Open the CameraTools app and toggle your desired features.
+5. Tap **Restart Camera** inside the app to apply changes immediately.
 
-## 📦 Installation & Setup
+## Reporting issues
 
-1. **Install APK**:
-   ```bash
-   adb install -r release/io.github.official_arvind.cameratools-v1.1.0.apk
-   ```
-2. **Activate in LSPosed / Vector**:
-   - Open LSPosed / Vector Manager.
-   - Enable `CameraTools`.
-   - Ensure the scope includes **Camera** (`com.android.camera`).
-3. **Configure**:
-   - Open **CameraTools** from the app drawer.
-   - Toggle desired camera enhancements.
-   - Tap **Restart Camera** to apply changes instantly.
+If a feature fails to hook or crashes your camera, please create a [GitHub issue](https://github.com/official-Arvind/CameraTools/issues/new) and attach your LSPosed/Vector logs as well as a crash log (db logcat -b crash).
 
----
+## License
 
-## 🔨 Building from Source
-
-### Prerequisites
-- JDK 17+
-- Android SDK Build-Tools 34.0.0+
-
-### Standalone Build Script
-Run the automated build script (handles AAPT2 resource compilation, DEX transformation, and signature verification):
-```powershell
-powershell -ExecutionPolicy Bypass -File .\build_apk.ps1
-```
-
-Signed release APK is output to: `release/io.github.official_arvind.cameratools-v1.1.0.apk`.
-
----
-
-## 📄 License
-This project is open-source under the [MIT License](LICENSE).
+[![GPL-3.0-only](https://img.shields.io/badge/LICENSE-GPL--3.0--only-%23A42E2B?style=for-the-badge&logo=gnu&logoColor=white&logoPosition=right)](LICENSE)
