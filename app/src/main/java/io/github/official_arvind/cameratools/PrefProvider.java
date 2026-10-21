@@ -45,6 +45,7 @@ public class PrefProvider extends ContentProvider {
             b.putBoolean(KEY_HIGH_RES_PHOTO, sp.getBoolean(KEY_HIGH_RES_PHOTO, false));
             return b;
         } else if ("get_boolean".equals(method)) {
+            if (arg == null) return null;
             Bundle b = new Bundle();
             b.putBoolean("value", sp.getBoolean(arg, false));
             return b;

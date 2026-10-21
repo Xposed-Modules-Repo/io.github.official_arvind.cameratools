@@ -1,12 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.official_arvind.cameratools"
-    android:versionCode="111"
-    android:versionName="1.2.7">
+    android:versionCode="130"
+    android:versionName="1.3.0">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
 
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+
+    <queries>
+        <package android:name="com.android.camera" />
+        <package android:name="com.miui.camera" />
+        <package android:name="com.google.android.GoogleCamera" />
+        <package android:name="com.google.android.GoogleCameraEng" />
+        <package android:name="com.android.camera2" />
+        <package android:name="org.lineageos.aperture" />
+        <package android:name="app.grapheneos.camera" />
+        <package android:name="net.sourceforge.opencamera" />
+        <intent>
+            <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
 
     <application
         android:resizeableActivity="true"
@@ -44,18 +61,8 @@
             android:name=".PrefProvider"
             android:authorities="io.github.official_arvind.cameratools.prefs"
             android:exported="true"
+            android:directBootAware="true"
             android:grantUriPermissions="true" />
     </application>
 
 </manifest>
-
-
-
-
-
-
-
-
-
-
-

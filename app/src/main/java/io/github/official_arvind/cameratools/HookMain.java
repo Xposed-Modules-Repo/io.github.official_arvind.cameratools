@@ -20,24 +20,42 @@ public class HookMain implements IXposedHookLoadPackage {
     private static final String TAG = "CameraTools";
 
     // Feature toggles (defaulting to false as requested)
-    private boolean enable4k60 = false;
-    private boolean enableBitrate = false;
-    private boolean enableRaw = false;
-    private boolean enableLeica = false;
-    private boolean enableDualVideo = false;
-    private boolean enableShutter = false;
-    private boolean enableDisableThermal = false;
-    private boolean enableHighResPhoto = false; // opt-in — default OFF (requires camera restart to take effect)
+    private volatile boolean enable4k60 = false;
+    private volatile boolean enableBitrate = false;
+    private volatile boolean enableRaw = false;
+    private volatile boolean enableLeica = false;
+    private volatile boolean enableDualVideo = false;
+    private volatile boolean enableShutter = false;
+    private volatile boolean enableDisableThermal = false;
+    private volatile boolean enableHighResPhoto = false; // opt-in — default OFF (requires camera restart to take effect)
 
     private XSharedPreferences xsp;
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        if (!"com.android.camera".equals(lpparam.packageName)) {
+        java.util.Set<String> SUPPORTED_PACKAGES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "com.android.camera",
+            "com.miui.camera",
+            "com.google.android.GoogleCamera",
+            "com.google.android.GoogleCameraEng",
+            "com.android.MGC",
+            "com.MGC",
+            "com.agc.cam",
+            "com.shamim.cam",
+            "org.codeaurora.snapcam",
+            "com.android.camera2",
+            "org.lineageos.aperture",
+            "app.grapheneos.camera",
+            "net.sourceforge.opencamera"
+        ));
+        if (!SUPPORTED_PACKAGES.contains(lpparam.packageName)) {
             return;
         }
 
-        XposedBridge.log("[" + TAG + "] Hook loaded for com.android.camera on ruby (MT6877)");
+        boolean isXiaomiCamera = "com.android.camera".equals(lpparam.packageName) || "com.miui.camera".equals(lpparam.packageName);
+        boolean isGCam = lpparam.packageName.contains("GoogleCamera") || lpparam.packageName.contains("MGC") || lpparam.packageName.contains("agc") || lpparam.packageName.contains("shamim");
+
+        XposedBridge.log("[" + TAG + "] Hook loaded for " + lpparam.packageName + " (isXiaomi=" + isXiaomiCamera + ", isGCam=" + isGCam + ", romIsMiui=" + RomDetector.isMiuiOrHyperOs() + ")");
 
         loadPreferences();
 
@@ -68,6 +86,10 @@ public class HookMain implements IXposedHookLoadPackage {
 
         // 8. 50MP Normal Photo — MediaTek ISP remosaic in standard photo mode
         hookHighResPhoto(lpparam);
+
+        // 9. Framework-level hooks (work across ALL camera apps on AOSP)
+        hookFrameworkLevel(lpparam);
+        if (isGCam) hookGCamSpecific(lpparam);
     }
 
     private void loadPreferences() {
@@ -101,7 +123,6 @@ public class HookMain implements IXposedHookLoadPackage {
 
     private boolean reloadPrefsDirect() {
         java.io.File[] candidateFiles = new java.io.File[] {
-            new java.io.File("/data/data/com.android.camera/shared_prefs/cameratools_prefs.xml"),
             new java.io.File("/data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml"),
             new java.io.File("/data/data/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml"),
             new java.io.File("/data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/camera_tools_prefs.xml"),
@@ -110,8 +131,7 @@ public class HookMain implements IXposedHookLoadPackage {
         for (java.io.File f : candidateFiles) {
             XposedBridge.log("[" + TAG + "] Checking prefs file: " + f.getPath() + " exists=" + f.exists() + " canRead=" + f.canRead());
             if (f.exists() && f.canRead()) {
-                try {
-                    java.io.FileInputStream fis = new java.io.FileInputStream(f);
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(f)) {
                     org.xmlpull.v1.XmlPullParser parser = android.util.Xml.newPullParser();
                     parser.setInput(fis, "utf-8");
                     int eventType = parser.getEventType();
@@ -130,7 +150,6 @@ public class HookMain implements IXposedHookLoadPackage {
                         }
                         eventType = parser.next();
                     }
-                    fis.close();
                     XposedBridge.log("[" + TAG + "] Direct XML prefs successfully parsed from " + f.getPath() + ": 4k60=" + enable4k60 + ", 50MP=" + enableHighResPhoto);
                     return true;
                 } catch (Throwable t) {
@@ -143,7 +162,7 @@ public class HookMain implements IXposedHookLoadPackage {
 
     private void hookContextReload(final XC_LoadPackage.LoadPackageParam lpparam) {
         try {
-            XposedHelpers.findAndHookMethod(android.content.ContextWrapper.class, "attachBaseContext", android.content.Context.class, new XC_MethodHook() {
+            XposedHelpers.findAndHookMethod(android.app.Application.class, "attachBaseContext", android.content.Context.class, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     reloadPrefsDirect();
@@ -360,7 +379,13 @@ public class HookMain implements IXposedHookLoadPackage {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     if (!enableBitrate) return;
-                    Map<String, Integer> map = new HashMap<>();
+                    Object existing = param.getResult();
+                    Map<String, Integer> map;
+                    if (existing instanceof Map) {
+                        map = new HashMap<>((Map<String, Integer>) existing);
+                    } else {
+                        map = new HashMap<>();
+                    }
                     map.put("3840x2160:60", 150000000); // 150 Mbps (4K 60)
                     map.put("3840x2160:30", 100000000); // 100 Mbps (4K 30)
                     map.put("1920x1080:60", 60000000);  // 60 Mbps (1080p 60)
@@ -712,11 +737,18 @@ public class HookMain implements IXposedHookLoadPackage {
                         param.setResult(true);
                     }
                 };
+                // Only hook specific support/capability check methods, NOT error/state check methods
+                String[] dualVideoChecks = {"isDualVideoSupported", "isDualCameraAllowed", "isConcurrentSupported", "isSupported", "canOpenDualCamera", "isSupportPIP"};
+                for (String methodName : dualVideoChecks) {
+                    try { XposedBridge.hookAllMethods(checkerClass, methodName, checkTrueHook); } catch (Throwable ignored) {}
+                }
+                // Also hook any method that has "support" or "allow" or "enable" in its name
                 for (java.lang.reflect.Method m : checkerClass.getDeclaredMethods()) {
                     if (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class) {
-                        try {
-                            XposedBridge.hookAllMethods(checkerClass, m.getName(), checkTrueHook);
-                        } catch (Throwable ignored) {}
+                        String mn = m.getName().toLowerCase();
+                        if (mn.contains("support") || mn.contains("allow") || mn.contains("enable") || mn.contains("capable")) {
+                            try { XposedBridge.hookAllMethods(checkerClass, m.getName(), checkTrueHook); } catch (Throwable ignored) {}
+                        }
                     }
                 }
                 XposedBridge.log("[" + TAG + "] DualVideo Checker all boolean checks bypassed");
@@ -984,8 +1016,9 @@ public class HookMain implements IXposedHookLoadPackage {
                     if (!enableHighResPhoto) return;
                     try {
                         Method mId = param.thisObject.getClass().getMethod("getId");
-                        int id = (int) mId.invoke(param.thisObject);
-                        if (id != 0) return; // Strictly rear main camera ONLY (JN1 50MP sensor)
+                        Object idObj = mId.invoke(param.thisObject);
+                        String idStr = String.valueOf(idObj);
+                        if (!"0".equals(idStr)) return; // Strictly rear main camera ONLY
                     } catch (Throwable t) {
                         try {
                             Class<?> csClass = XposedHelpers.findClass("com.android.camera.CameraSettings", lpparam.classLoader);
@@ -1000,44 +1033,29 @@ public class HookMain implements IXposedHookLoadPackage {
 
             // Spoof CameraSettings for MiCamera2 to enable backend remosaic vendor tags,
             // while keeping UI oblivious so AI/HDR buttons stay enabled!
-            Class<?> cameraSettings = XposedHelpers.findClass("com.android.camera.CameraSettings", lpparam.classLoader);
-            XC_MethodHook spoofBackendHook = new XC_MethodHook() {
+            Class<?> cameraSettings = XposedHelpers.findClass("com.android.camera.CameraSettings", lpparam.classLoader);            XC_MethodHook spoofBackendHook = new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     if (!enableHighResPhoto) return;
-                    
-                    boolean originalResult = false;
-                    if (param.getResult() != null) {
-                        originalResult = (boolean) param.getResult();
-                    }
-                    if (originalResult) return; // Already true, do nothing
-                    
-                    // Do not spoof if it's the front camera or non-main sensor!
+                    if (param.getResult() instanceof Boolean && (Boolean) param.getResult()) return; // Already true
+                    // Do not spoof if it's the front camera or non-main sensor
                     try {
-                        Class<?> csClass = XposedHelpers.findClass("com.android.camera.CameraSettings", lpparam.classLoader);
-                        Method mFront = csClass.getDeclaredMethod("isFrontCamera");
-                        mFront.setAccessible(true);
-                        if ((boolean) mFront.invoke(null)) {
-                            return; // Strictly abort for front camera
-                        }
-                        Method mId = csClass.getDeclaredMethod("getCameraId");
-                        mId.setAccessible(true);
-                        int cameraId = (int) mId.invoke(null);
-                        if (cameraId != 0) {
-                            return; // Strictly abort for ultra-wide, macro, etc.
+                        Class<?> csClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSettings", lpparam.classLoader);
+                        if (csClass != null) {
+                            try {
+                                Method mFront = csClass.getDeclaredMethod("isFrontCamera");
+                                mFront.setAccessible(true);
+                                if ((boolean) mFront.invoke(null)) return;
+                            } catch (Throwable ignored) {}
+                            try {
+                                Method mId = csClass.getDeclaredMethod("getCameraId");
+                                mId.setAccessible(true);
+                                Object camId = mId.invoke(null);
+                                if (!"0".equals(String.valueOf(camId))) return;
+                            } catch (Throwable ignored) {}
                         }
                     } catch (Throwable ignored) {}
-                    
-                    StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-                    for (StackTraceElement element : stack) {
-                        String className = element.getClassName();
-                        // If the call originated from the camera2 backend, spoof true!
-                        if (className.startsWith("com.android.camera2.") || 
-                            className.startsWith("android.hardware.camera2")) {
-                            param.setResult(true);
-                            return;
-                        }
-                    }
+                    param.setResult(true);
                 }
             };
             XposedBridge.hookAllMethods(cameraSettings, "isUltraPixelOn", spoofBackendHook);
@@ -1058,8 +1076,9 @@ public class HookMain implements IXposedHookLoadPackage {
                             if ((boolean) mFacing.invoke(caps)) return; // Strictly skip front camera!
                             
                             Method mId = caps.getClass().getMethod("getCameraId");
-                            int id = (int) mId.invoke(caps);
-                            if (id != 0) return; // Strictly skip ultra-wide, macro, etc.
+                            Object idObj = mId.invoke(caps);
+                            String idStr = String.valueOf(idObj);
+                            if (!"0".equals(idStr)) return; // Strictly skip ultra-wide, macro, etc.
                         }
                     } catch (Throwable t) {
                         try {
@@ -1075,12 +1094,18 @@ public class HookMain implements IXposedHookLoadPackage {
                         if (format == 256) { // ImageFormat.JPEG
                             Object result = param.getResult();
                             if (result instanceof java.util.List) {
-                                java.util.List list = (java.util.List) result;
+                                java.util.List srcList = (java.util.List) result;
                                 boolean has50mp = false;
-                                for (Object obj : list) {
+                                for (Object obj : srcList) {
                                     try {
-                                        int w = (int) XposedHelpers.callMethod(obj, "getWidth");
-                                        int h = (int) XposedHelpers.callMethod(obj, "getHeight");
+                                        int w, h;
+                                        try {
+                                            w = XposedHelpers.getIntField(obj, "width");
+                                            h = XposedHelpers.getIntField(obj, "height");
+                                        } catch (Throwable e) {
+                                            w = (int) XposedHelpers.callMethod(obj, "getWidth");
+                                            h = (int) XposedHelpers.callMethod(obj, "getHeight");
+                                        }
                                         if ((w == 8192 && h == 6144) || (w == 6144 && h == 8192)) {
                                             has50mp = true;
                                             break;
@@ -1089,19 +1114,25 @@ public class HookMain implements IXposedHookLoadPackage {
                                 }
                                 if (!has50mp) {
                                     try {
-                                        Class<?> cameraSizeClass = XposedHelpers.findClass("com.android.camera.CameraSize", lpparam.classLoader);
-                                        java.lang.reflect.Constructor<?> ctor = cameraSizeClass.getConstructor(int.class, int.class);
-                                        // 4:3 (True 50MP JN1 Bayer resolution)
-                                        list.add(0, ctor.newInstance(8192, 6144));
-                                        list.add(0, ctor.newInstance(6144, 8192));
-                                        // 16:9
-                                        list.add(0, ctor.newInstance(8192, 4608));
-                                        list.add(0, ctor.newInstance(4608, 8192));
-                                        // 1:1
-                                        list.add(0, ctor.newInstance(6144, 6144));
-                                        // 20:9
-                                        list.add(0, ctor.newInstance(8192, 3692));
-                                        list.add(0, ctor.newInstance(3692, 8192));
+                                        Class<?> cameraSizeClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSize", lpparam.classLoader);
+                                        if (cameraSizeClass != null) {
+                                            java.lang.reflect.Constructor<?> ctor = cameraSizeClass.getConstructor(int.class, int.class);
+                                            // Build a new mutable list to avoid UnsupportedOperationException on immutable lists
+                                            java.util.List<Object> newList = new java.util.ArrayList<>();
+                                            // 4:3 (True 50MP JN1 Bayer resolution)
+                                            newList.add(ctor.newInstance(8192, 6144));
+                                            newList.add(ctor.newInstance(6144, 8192));
+                                            // 16:9
+                                            newList.add(ctor.newInstance(8192, 4608));
+                                            newList.add(ctor.newInstance(4608, 8192));
+                                            // 1:1
+                                            newList.add(ctor.newInstance(6144, 6144));
+                                            // 20:9
+                                            newList.add(ctor.newInstance(8192, 3692));
+                                            newList.add(ctor.newInstance(3692, 8192));
+                                            newList.addAll(srcList);
+                                            param.setResult(newList);
+                                        }
                                     } catch (Throwable t) {
                                         XposedBridge.log("[" + TAG + "] Error injecting CameraSize: " + t.getMessage());
                                     }
@@ -1121,12 +1152,134 @@ public class HookMain implements IXposedHookLoadPackage {
             XposedBridge.log("[" + TAG + "] Hook 50MP Normal Photo failed: " + t.getMessage());
         }
     }
+    // ==========================================
+    // 9. Framework-Level Hooks (AOSP / GCam / Open Camera compatible)
+    // ==========================================
+    private void hookFrameworkLevel(final XC_LoadPackage.LoadPackageParam lpparam) {
+        // A. CameraCharacteristics universal hooks
+        try {
+            Class<?> charClass = XposedHelpers.findClassIfExists("android.hardware.camera2.CameraCharacteristics", lpparam.classLoader);
+            if (charClass != null) {
+                XposedBridge.hookAllMethods(charClass, "get", new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        if (param.args.length == 0 || param.args[0] == null) return;
+                        Object key = param.args[0];
+                        String keyName = key.toString();
+
+                        // 60s Shutter Speed Range
+                        if (enableShutter && keyName.contains("SENSOR_INFO_EXPOSURE_TIME_RANGE")) {
+                            param.setResult(new Range<Long>(62500L, 60000000000L));
+                        }
+                        // 4K 60FPS AE Target FPS Ranges
+                        else if (enable4k60 && keyName.contains("CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES")) {
+                            Object result = param.getResult();
+                            if (result instanceof Range[]) {
+                                Range<Integer>[] ranges = (Range<Integer>[]) result;
+                                boolean has60 = false;
+                                for (Range<Integer> r : ranges) {
+                                    if (r.getUpper() >= 60) { has60 = true; break; }
+                                }
+                                if (!has60) {
+                                    Range<Integer>[] newRanges = new Range[ranges.length + 2];
+                                    System.arraycopy(ranges, 0, newRanges, 0, ranges.length);
+                                    newRanges[ranges.length] = new Range<>(60, 60);
+                                    newRanges[ranges.length + 1] = new Range<>(30, 60);
+                                    param.setResult(newRanges);
+                                }
+                            }
+                        }
+                    }
+                });
+                XposedBridge.log("[" + TAG + "] CameraCharacteristics framework hooks installed");
+            }
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Framework CameraCharacteristics hook failed: " + t.getMessage());
+        }
+
+        // B. PowerManager thermal status bypass (AOSP / GCam)
+        try {
+            Class<?> powerClass = XposedHelpers.findClassIfExists("android.os.PowerManager", lpparam.classLoader);
+            if (powerClass != null) {
+                XposedBridge.hookAllMethods(powerClass, "getCurrentThermalStatus", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        if (!enableDisableThermal) return;
+                        param.setResult(0); // THERMAL_STATUS_NONE
+                    }
+                });
+                XposedBridge.log("[" + TAG + "] PowerManager thermal bypass installed");
+            }
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Framework PowerManager hook failed: " + t.getMessage());
+        }
+
+        // C. MediaRecorder bitrate for AOSP Camera2 / Open Camera
+        try {
+            Class<?> recorderClass = XposedHelpers.findClassIfExists("android.media.MediaRecorder", lpparam.classLoader);
+            if (recorderClass != null) {
+                XposedBridge.hookAllMethods(recorderClass, "setVideoEncodingBitRate", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        if (!enableBitrate) return;
+                        param.args[0] = 150000000; // 150 Mbps
+                    }
+                });
+                XposedBridge.log("[" + TAG + "] MediaRecorder bitrate hook installed");
+            }
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Framework MediaRecorder hook failed: " + t.getMessage());
+        }
+
+        // D. CamcorderProfile 4K 60FPS
+        try {
+            Class<?> profileClass = XposedHelpers.findClassIfExists("android.media.CamcorderProfile", lpparam.classLoader);
+            if (profileClass != null) {
+                XposedBridge.hookAllMethods(profileClass, "hasProfile", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        if (!enable4k60) return;
+                        if (param.args.length >= 2 && (Integer) param.args[1] == 8 /* QUALITY_2160P */) {
+                            param.setResult(true);
+                        }
+                    }
+                });
+                XposedBridge.log("[" + TAG + "] CamcorderProfile 4K60 hook installed");
+            }
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Framework CamcorderProfile hook failed: " + t.getMessage());
+        }
+
+        XposedBridge.log("[" + TAG + "] Framework-level universal hooks done");
+    }
+
+    // ==========================================
+    // 10. GCam-Specific Hooks (MediaFormat / MediaCodec bitrate)
+    // ==========================================
+    private void hookGCamSpecific(final XC_LoadPackage.LoadPackageParam lpparam) {
+        try {
+            Class<?> formatClass = XposedHelpers.findClassIfExists("android.media.MediaFormat", lpparam.classLoader);
+            if (formatClass != null) {
+                XposedBridge.hookAllMethods(formatClass, "setInteger", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        if (!enableBitrate) return;
+                        if (param.args.length >= 2 && param.args[0] instanceof String) {
+                            String name = (String) param.args[0];
+                            if ("bitrate".equalsIgnoreCase(name) || "android._bitrate".equalsIgnoreCase(name)) {
+                                int original = (Integer) param.args[1];
+                                if (original > 5000000) { // Only override actual video bitrates (>5Mbps)
+                                    param.args[1] = 150000000; // 150 Mbps
+                                    XposedBridge.log("[" + TAG + "] GCam MediaFormat bitrate overridden: " + original + " -> 150Mbps");
+                                }
+                            }
+                        }
+                    }
+                });
+                XposedBridge.log("[" + TAG + "] GCam MediaFormat bitrate hook installed");
+            }
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] GCam MediaFormat hook failed: " + t.getMessage());
+        }
+    }
 }
-
-
-
-
-
-
-
-

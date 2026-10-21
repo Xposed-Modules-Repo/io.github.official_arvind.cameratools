@@ -4,6 +4,7 @@ public abstract class XC_MethodHook {
     public static class MethodHookParam {
         public Object thisObject;
         public Object[] args;
+        public java.lang.reflect.Member method;
         private Object result;
         private Throwable throwable;
         private boolean returnEarly;
