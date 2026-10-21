@@ -123,6 +123,8 @@ public class HookMain implements IXposedHookLoadPackage {
 
     private boolean reloadPrefsDirect() {
         java.io.File[] candidateFiles = new java.io.File[] {
+            new java.io.File("/data/data/com.android.camera/shared_prefs/cameratools_prefs.xml"),
+            new java.io.File("/data/data/com.miui.camera/shared_prefs/cameratools_prefs.xml"),
             new java.io.File("/data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml"),
             new java.io.File("/data/data/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml"),
             new java.io.File("/data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/camera_tools_prefs.xml"),
@@ -162,7 +164,7 @@ public class HookMain implements IXposedHookLoadPackage {
 
     private void hookContextReload(final XC_LoadPackage.LoadPackageParam lpparam) {
         try {
-            XposedHelpers.findAndHookMethod(android.app.Application.class, "attachBaseContext", android.content.Context.class, new XC_MethodHook() {
+            XposedHelpers.findAndHookMethod(android.content.ContextWrapper.class, "attachBaseContext", android.content.Context.class, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     reloadPrefsDirect();
@@ -1037,25 +1039,45 @@ public class HookMain implements IXposedHookLoadPackage {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     if (!enableHighResPhoto) return;
-                    if (param.getResult() instanceof Boolean && (Boolean) param.getResult()) return; // Already true
-                    // Do not spoof if it's the front camera or non-main sensor
+                    
+                    boolean originalResult = false;
+                    if (param.getResult() != null) {
+                        originalResult = (boolean) param.getResult();
+                    }
+                    if (originalResult) return; // Already true, do nothing
+                    
+                    // Do not spoof if it's the front camera or non-main sensor!
                     try {
                         Class<?> csClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSettings", lpparam.classLoader);
                         if (csClass != null) {
                             try {
                                 Method mFront = csClass.getDeclaredMethod("isFrontCamera");
                                 mFront.setAccessible(true);
-                                if ((boolean) mFront.invoke(null)) return;
+                                if ((boolean) mFront.invoke(null)) {
+                                    return; // Strictly abort for front camera
+                                }
                             } catch (Throwable ignored) {}
                             try {
                                 Method mId = csClass.getDeclaredMethod("getCameraId");
                                 mId.setAccessible(true);
                                 Object camId = mId.invoke(null);
-                                if (!"0".equals(String.valueOf(camId))) return;
+                                if (!"0".equals(String.valueOf(camId))) {
+                                    return; // Strictly abort for ultra-wide, macro, etc.
+                                }
                             } catch (Throwable ignored) {}
                         }
                     } catch (Throwable ignored) {}
-                    param.setResult(true);
+                    
+                    StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+                    for (StackTraceElement element : stack) {
+                        String className = element.getClassName();
+                        // If the call originated from the camera2 backend, spoof true!
+                        if (className.startsWith("com.android.camera2.") || 
+                            className.startsWith("android.hardware.camera2")) {
+                            param.setResult(true);
+                            return;
+                        }
+                    }
                 }
             };
             XposedBridge.hookAllMethods(cameraSettings, "isUltraPixelOn", spoofBackendHook);

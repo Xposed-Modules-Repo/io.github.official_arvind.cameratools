@@ -244,7 +244,7 @@ public class MainActivity extends Activity {
                     try {
                         Process p = Runtime.getRuntime().exec(new String[]{
                             "su", "-c",
-                            "mkdir -p /data/data/com.android.camera/shared_prefs && cp /data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml /data/data/com.android.camera/shared_prefs/cameratools_prefs.xml && chmod 666 /data/data/com.android.camera/shared_prefs/cameratools_prefs.xml"
+                            "mkdir -p /data/data/com.android.camera/shared_prefs && cp /data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml /data/data/com.android.camera/shared_prefs/cameratools_prefs.xml && chmod 666 /data/data/com.android.camera/shared_prefs/cameratools_prefs.xml && mkdir -p /data/data/com.miui.camera/shared_prefs && cp /data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml /data/data/com.miui.camera/shared_prefs/cameratools_prefs.xml && chmod 666 /data/data/com.miui.camera/shared_prefs/cameratools_prefs.xml"
                         });
                         p.waitFor();
                     } catch (Throwable ignored) {}
@@ -281,9 +281,15 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 try {
-                    android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-                    am.killBackgroundProcesses("com.android.camera");
-                } catch (Exception ignored) {}
+                    Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", "am force-stop com.android.camera; am force-stop com.miui.camera"});
+                    p.waitFor();
+                } catch (Throwable t) {
+                    try {
+                        android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+                        am.killBackgroundProcesses("com.android.camera");
+                        am.killBackgroundProcesses("com.miui.camera");
+                    } catch (Exception ignored) {}
+                }
                 
                 try { Thread.sleep(600); } catch (InterruptedException ignored) {}
                 runOnUiThread(new Runnable() {
@@ -295,10 +301,15 @@ public class MainActivity extends Activity {
                         }
                         try {
                             android.content.Intent intent = getPackageManager().getLaunchIntentForPackage("com.android.camera");
+                            if (intent == null) {
+                                intent = getPackageManager().getLaunchIntentForPackage("com.miui.camera");
+                            }
                             if (intent != null) {
                                 intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                 startActivity(intent);
                                 android.widget.Toast.makeText(MainActivity.this, "Camera restarted!", android.widget.Toast.LENGTH_SHORT).show();
+                            } else {
+                                android.widget.Toast.makeText(MainActivity.this, "Please open Camera manually.", android.widget.Toast.LENGTH_LONG).show();
                             }
                         } catch (Exception e) {
                             android.widget.Toast.makeText(MainActivity.this, "Please force stop Camera manually.", android.widget.Toast.LENGTH_LONG).show();
