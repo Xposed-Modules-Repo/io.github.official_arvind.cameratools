@@ -18,25 +18,9 @@
 
 ---
 
-## 🌟 What's New in v1.3.1: Bulletproof Preference Architecture for AOSP & Vector / LSPosed
+## 🌟 Changelog & Release Notes
 
-> [!IMPORTANT]
-> **AOSP & Vector Preference Fix**: In v1.3.0, users on AOSP ROMs (e.g., Evolution X, LineageOS) running under Vector / modern LSPosed reported that preferences saved in the UI were not picked up at runtime (`exists=false canRead=false` in logcat). 
-> 
-> **v1.3.1 introduces a 4-Tier Bulletproof Architecture**:
-> 1. **LSPosed API 93 Modern XSharedPreferences**: Enables `xposedminversion="93"` and `xposedsharedprefs="true"` with `MODE_WORLD_READABLE` redirection. Settings are seamlessly shared between processes via framework IPC without touching the physical filesystem. Works **both with and without root**!
-> 2. **Automated SELinux Root Sync**: If root access is available, CameraTools automatically resolves the exact camera package UID (`stat -c %u`), creates the target directories, copies the XML config, sets `chmod 666`, applies `chown`, and runs `restorecon -F` to ensure full SELinux compliance.
-> 3. **Package Visibility Bypass**: Automatically grants `FLAG_GRANT_READ_URI_PERMISSION` across all supported camera packages to overcome Android 11+ Package Visibility filtering.
-> 4. **Live Lifecycle Reloading**: Hooks `Application.onCreate` and `Activity.onResume` so toggling settings in CameraTools takes effect the moment the camera opens.
-
----
-
-## 🌟 What's New in v1.3.0: Universal AOSP ROM & Multi-Camera Compatibility
-
-> [!IMPORTANT]
-> **Major Milestone Update**: CameraTools is no longer restricted to stock MIUI/HyperOS ROMs! With **v1.3.0**, CameraTools features a dual-layer architecture combining deep OEM hooks with **Universal Android Framework (`android.hardware.camera2` & `android.media`) Hooks**.
->
-> Whether you run stock Xiaomi HyperOS, a port of Leica Camera on LineageOS, a GCam port, or standard AOSP Open Camera, CameraTools unlocks the true underlying hardware potential of the Sony IMX766 and MediaTek ISP.
+For detailed release notes, bug fixes, and version history, please see **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
@@ -89,12 +73,12 @@ CameraTools automatically detects your ROM environment (`RomDetector`) and injec
 
 Are you running a custom AOSP ROM on your Redmi Note 12 Pro 5G / Pro+ 5G (`ruby` / `rubypro`)? **We want your feedback!**
 
-We have designed v1.3.0 specifically to support custom ROMs such as **LineageOS**, **crDroid**, **Evolution X**, **PixelOS**, **DerpFest**, and **RisingOS**.
+We have designed CameraTools specifically to support custom ROMs such as **LineageOS**, **crDroid**, **Evolution X**, **PixelOS**, **DerpFest**, and **RisingOS**.
 
 ### How to Test on AOSP:
 
 1. **Install Module**:
-   * Download and install the latest `v1.3.0` APK from [Releases](https://github.com/official-Arvind/CameraTools/releases).
+   * Download and install the latest `v1.3.1` APK from [Releases](https://github.com/official-Arvind/CameraTools/releases).
 2. **Grant Superuser (Root) Permissions**:
    * Open the **CameraTools** app. When prompted by Magisk, KernelSU, or APatch, tap **Grant** (Always Allow) so the app can sync settings directly to target camera data directories and execute quick camera restarts.
 3. **Enable in LSPosed / Vector**:
@@ -133,7 +117,7 @@ We have designed v1.3.0 specifically to support custom ROMs such as **LineageOS*
    * Root: **Magisk**, **KernelSU**, or **APatch** (Superuser permissions granted to CameraTools)
    * Framework: **LSPosed (Zygisk)** or **Vector** installed and active
 2. **Setup Steps**:
-   * Install `io.github.official_arvind.cameratools-v1.3.0.apk`.
+   * Install `io.github.official_arvind.cameratools-v1.3.1.apk`.
    * Open **CameraTools** and grant root permission.
    * Activate module in LSPosed / Vector and select camera app(s) in scope.
    * Reboot device or restart zygote.
