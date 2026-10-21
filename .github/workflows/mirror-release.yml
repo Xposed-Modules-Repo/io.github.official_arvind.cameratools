@@ -3,6 +3,9 @@ name: Mirror to Xposed-Modules-Repo
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -19,7 +22,7 @@ jobs:
     permissions:
       contents: read
     env:
-      TAG_NAME: ${{ inputs.tag || github.event.release.tag_name }}
+      TAG_NAME: ${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
     steps:
       - name: Validate tag
         run: |
@@ -34,6 +37,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
+          # If triggered by tag push before a GitHub release is published, check if release exists
+          if ! gh release view "$TAG_NAME" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME does not exist yet. Mirroring will run when release is published."
+            exit 0
+          fi
           gh release view "$TAG_NAME" --repo "$REPO" --json name,body,isPrerelease \
             --jq '"name=\(.name)\nprerelease=\(.isPrerelease)"' >> "$GITHUB_OUTPUT"
           echo "body<<BODY_EOF" >> "$GITHUB_OUTPUT"
@@ -41,6 +49,7 @@ jobs:
           echo "BODY_EOF" >> "$GITHUB_OUTPUT"
 
       - name: Download APK from release
+        if: steps.release.outputs.name != ''
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -55,6 +64,7 @@ jobs:
           [ "$apk_count" -gt 0 ] || { echo "::error::No APK found"; exit 1; }
 
       - name: Create mirror release
+        if: steps.release.outputs.name != ''
         uses: softprops/action-gh-release@v2
         with:
           repository: Xposed-Modules-Repo/io.github.official_arvind.cameratools

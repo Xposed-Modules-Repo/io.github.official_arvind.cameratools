@@ -10,10 +10,12 @@ build_tmp/
 captures/
 bin/
 release/
+release/*-vlatest.apk
 
 # Sensitive key & signature files (STRICTLY PROHIBITED FROM REPO)
 *.jks
 *.keystore
+debug.keystore
 *.key
 *.pem
 *.p12
@@ -24,19 +26,23 @@ secrets.properties
 
 # Android ID signatures
 *.idsig
+*.apk.idsig
 
-# APKs and zips outside release directory
+# APKs and zips
 *.apk
 !release/*.apk
 *.zip
 !release/*.zip
 
-# OS artifacts
+# Temporary, decompilation, analysis & OS artifacts
 .DS_Store
 Thumbs.db
 Desktop.ini
 build_apk.ps1
 hx_*
+hx_files.json
+hx_tree.txt
+MiuiCamera.apk
 temp*
 xposed-rewrite/
 Test*
