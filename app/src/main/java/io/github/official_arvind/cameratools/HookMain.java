@@ -93,17 +93,16 @@ public class HookMain implements IXposedHookLoadPackage {
     }
 
     private void loadPreferences() {
-        boolean parsed = reloadPrefsDirect();
-        if (!parsed) {
-            try {
-                java.io.File deFile = new java.io.File("/data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml");
-                if (deFile.exists()) {
-                    xsp = new XSharedPreferences(deFile);
-                } else {
-                    xsp = new XSharedPreferences("io.github.official_arvind.cameratools");
-                }
-                xsp.makeWorldReadable();
-                xsp.reload();
+        boolean loaded = false;
+
+        // Tier 1: Modern LSPosed Remote Preferences (API 93+)
+        try {
+            if (xsp == null) {
+                xsp = new XSharedPreferences("io.github.official_arvind.cameratools", PrefProvider.PREFS_NAME);
+            }
+            xsp.reload();
+            Map<String, ?> all = xsp.getAll();
+            if (all != null && !all.isEmpty()) {
                 enable4k60 = xsp.getBoolean(PrefProvider.KEY_4K60, false);
                 enableBitrate = xsp.getBoolean(PrefProvider.KEY_BITRATE, false);
                 enableRaw = xsp.getBoolean(PrefProvider.KEY_RAW, false);
@@ -112,10 +111,18 @@ public class HookMain implements IXposedHookLoadPackage {
                 enableShutter = xsp.getBoolean(PrefProvider.KEY_SHUTTER, false);
                 enableDisableThermal = xsp.getBoolean(PrefProvider.KEY_DISABLE_THERMAL, false);
                 enableHighResPhoto = xsp.getBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, false);
-            } catch (Throwable t) {
-                XposedBridge.log("[" + TAG + "] Error loading preferences, using defaults: " + t.getMessage());
+                loaded = true;
+                XposedBridge.log("[" + TAG + "] Preferences successfully loaded via LSPosed RemotePreferences (API 93)");
             }
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] LSPosed RemotePreferences notice: " + t.getMessage());
         }
+
+        // Tier 2: Direct XML File Fallback (Root synced or world-readable storage)
+        if (!loaded) {
+            loaded = reloadPrefsDirect();
+        }
+
         XposedBridge.log("[" + TAG + "] Final Preferences applied: 4k60=" + enable4k60 + ", bitrate=" + enableBitrate +
                 ", raw=" + enableRaw + ", leica=" + enableLeica + ", dual=" + enableDualVideo + ", shutter=" + enableShutter +
                 ", thermalBypass=" + enableDisableThermal + ", 50MP=" + enableHighResPhoto);
@@ -124,7 +131,9 @@ public class HookMain implements IXposedHookLoadPackage {
     private boolean reloadPrefsDirect() {
         java.io.File[] candidateFiles = new java.io.File[] {
             new java.io.File("/data/data/com.android.camera/shared_prefs/cameratools_prefs.xml"),
+            new java.io.File("/data/user/0/com.android.camera/shared_prefs/cameratools_prefs.xml"),
             new java.io.File("/data/data/com.miui.camera/shared_prefs/cameratools_prefs.xml"),
+            new java.io.File("/data/user/0/com.miui.camera/shared_prefs/cameratools_prefs.xml"),
             new java.io.File("/data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml"),
             new java.io.File("/data/data/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml"),
             new java.io.File("/data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/camera_tools_prefs.xml"),
@@ -162,39 +171,91 @@ public class HookMain implements IXposedHookLoadPackage {
         return false;
     }
 
+    private void reloadAllPreferences(Context ctx) {
+        // Try LSPosed reload
+        try {
+            if (xsp != null) {
+                xsp.reload();
+                Map<String, ?> all = xsp.getAll();
+                if (all != null && !all.isEmpty()) {
+                    enable4k60 = xsp.getBoolean(PrefProvider.KEY_4K60, enable4k60);
+                    enableBitrate = xsp.getBoolean(PrefProvider.KEY_BITRATE, enableBitrate);
+                    enableRaw = xsp.getBoolean(PrefProvider.KEY_RAW, enableRaw);
+                    enableLeica = xsp.getBoolean(PrefProvider.KEY_LEICA, enableLeica);
+                    enableDualVideo = xsp.getBoolean(PrefProvider.KEY_DUAL_VIDEO, enableDualVideo);
+                    enableShutter = xsp.getBoolean(PrefProvider.KEY_SHUTTER, enableShutter);
+                    enableDisableThermal = xsp.getBoolean(PrefProvider.KEY_DISABLE_THERMAL, enableDisableThermal);
+                    enableHighResPhoto = xsp.getBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, enableHighResPhoto);
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        // Try direct XML reload
+        reloadPrefsDirect();
+
+        // Try ContentProvider reload if Context is available
+        if (ctx != null) {
+            try {
+                android.content.ContentResolver cr = ctx.getContentResolver();
+                if (cr != null) {
+                    android.net.Uri uri = android.net.Uri.parse("content://io.github.official_arvind.cameratools.prefs");
+                    android.os.Bundle b = cr.call(uri, "get_all", null, null);
+                    if (b != null) {
+                        enable4k60 = b.getBoolean(PrefProvider.KEY_4K60, enable4k60);
+                        enableBitrate = b.getBoolean(PrefProvider.KEY_BITRATE, enableBitrate);
+                        enableRaw = b.getBoolean(PrefProvider.KEY_RAW, enableRaw);
+                        enableLeica = b.getBoolean(PrefProvider.KEY_LEICA, enableLeica);
+                        enableDualVideo = b.getBoolean(PrefProvider.KEY_DUAL_VIDEO, enableDualVideo);
+                        enableShutter = b.getBoolean(PrefProvider.KEY_SHUTTER, enableShutter);
+                        enableDisableThermal = b.getBoolean(PrefProvider.KEY_DISABLE_THERMAL, enableDisableThermal);
+                        enableHighResPhoto = b.getBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, enableHighResPhoto);
+                        XposedBridge.log("[" + TAG + "] Preferences updated via ContentProvider: 4k60=" + enable4k60 + ", 50MP=" + enableHighResPhoto);
+                    }
+                }
+            } catch (Throwable cpErr) {
+                XposedBridge.log("[" + TAG + "] ContentProvider sync attempt notice: " + cpErr.getMessage());
+            }
+        }
+    }
+
     private void hookContextReload(final XC_LoadPackage.LoadPackageParam lpparam) {
+        // 1. Hook ContextWrapper.attachBaseContext
         try {
             XposedHelpers.findAndHookMethod(android.content.ContextWrapper.class, "attachBaseContext", android.content.Context.class, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    reloadPrefsDirect();
-                    try {
-                        Context ctx = (Context) param.args[0];
-                        android.content.ContentResolver cr = ctx.getContentResolver();
-                        try {
-                            android.net.Uri uri = android.net.Uri.parse("content://io.github.official_arvind.cameratools.prefs");
-                            android.os.Bundle b = cr.call(uri, "get_all", null, null);
-                            if (b != null) {
-                                enable4k60 = b.getBoolean("pref_4k60", enable4k60);
-                                enableBitrate = b.getBoolean("pref_bitrate", enableBitrate);
-                                enableRaw = b.getBoolean("pref_raw", enableRaw);
-                                enableLeica = b.getBoolean("pref_leica", enableLeica);
-                                enableDualVideo = b.getBoolean("pref_dual_video", enableDualVideo);
-                                enableShutter = b.getBoolean("pref_shutter", enableShutter);
-                                enableDisableThermal = b.getBoolean("pref_disable_thermal", enableDisableThermal);
-                                enableHighResPhoto = b.getBoolean("pref_high_res_photo", enableHighResPhoto);
-                                XposedBridge.log("[" + TAG + "] Preferences updated via ContentProvider: 4k60=" + enable4k60 + ", 50MP=" + enableHighResPhoto);
-                            }
-                        } catch (Throwable cpErr) {
-                            // Expected if package visibility filters provider; reloadPrefsDirect handles it
-                        }
-                    } catch (Throwable t) {
-                        XposedBridge.log("[" + TAG + "] Hook Context reload error: " + t.getMessage());
-                    }
+                    Context ctx = (Context) param.args[0];
+                    reloadAllPreferences(ctx);
                 }
             });
         } catch (Throwable t) {
             XposedBridge.log("[" + TAG + "] Hook attachBaseContext failed: " + t.getMessage());
+        }
+
+        // 2. Hook Application.onCreate
+        try {
+            XposedHelpers.findAndHookMethod(android.app.Application.class, "onCreate", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    Context ctx = (Context) param.thisObject;
+                    reloadAllPreferences(ctx);
+                }
+            });
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook Application.onCreate failed: " + t.getMessage());
+        }
+
+        // 3. Hook Activity.onResume for live switch updates
+        try {
+            XposedHelpers.findAndHookMethod(android.app.Activity.class, "onResume", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    Context ctx = (Context) param.thisObject;
+                    reloadAllPreferences(ctx);
+                }
+            });
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook Activity.onResume failed: " + t.getMessage());
         }
     }
 

@@ -2,18 +2,20 @@ package io.github.official_arvind.cameratools;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
-import android.graphics.Color;
-import android.view.View;
 import android.widget.Button;
 import android.widget.Switch;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.Map;
 
 public class MainActivity extends Activity {
     private SharedPreferences prefs;
@@ -49,7 +51,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         
         final View bottomBar = findViewById(R.id.bottom_bar);
-                final View scrollView = findViewById(R.id.scroll_view);
+        final View scrollView = findViewById(R.id.scroll_view);
         bottomBar.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
             @Override
             public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
@@ -64,7 +66,6 @@ public class MainActivity extends Activity {
                 int dp20 = (int)(20 * getResources().getDisplayMetrics().density);
                 int dp24 = (int)(24 * getResources().getDisplayMetrics().density);
                 
-                // bottomBar height is roughly 64dp. Plus margins (16dp top/bottom) = 96dp + bottom insets.
                 int bottomBarTotalHeight = (int)(96 * getResources().getDisplayMetrics().density) + bottom;
                 scrollView.setPadding(dp16, dp20 + top, dp16, dp24 + bottomBarTotalHeight);
                 
@@ -72,11 +73,12 @@ public class MainActivity extends Activity {
             }
         });
 
-
+        // Initialize SharedPreferences - under LSPosed API 93+, MODE_WORLD_READABLE is redirected
+        // to a shared directory accessible by hooked processes.
         Context deCtx = isDeviceProtectedStorage() ? this : createDeviceProtectedStorageContext();
         try {
             prefs = deCtx.getSharedPreferences(PrefProvider.PREFS_NAME, Context.MODE_WORLD_READABLE);
-        } catch (SecurityException e) {
+        } catch (Throwable e) {
             prefs = deCtx.getSharedPreferences(PrefProvider.PREFS_NAME, Context.MODE_PRIVATE);
         }
 
@@ -103,6 +105,7 @@ public class MainActivity extends Activity {
         if (changed) {
             edInit.commit();
         }
+
         makePrefsWorldReadable();
 
         loadPreferences();
@@ -130,7 +133,7 @@ public class MainActivity extends Activity {
                 updateToggleAllButtonText(btnEnableAll);
             }
         });
-            }
+    }
 
     private boolean areAllEnabled() {
         return sw4k60.isChecked() && swBitrate.isChecked() && swRaw.isChecked()
@@ -195,18 +198,107 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void grantCameraUriPermissions() {
+        try {
+            Uri uri = Uri.parse("content://" + PrefProvider.AUTHORITY);
+            String[] targetPkgs = new String[]{
+                "com.android.camera",
+                "com.miui.camera",
+                "com.google.android.GoogleCamera",
+                "com.google.android.GoogleCameraEng",
+                "com.android.MGC",
+                "com.MGC",
+                "com.agc.cam",
+                "com.shamim.cam",
+                "org.codeaurora.snapcam",
+                "com.android.camera2",
+                "org.lineageos.aperture",
+                "app.grapheneos.camera",
+                "net.sourceforge.opencamera"
+            };
+            for (String pkg : targetPkgs) {
+                try {
+                    grantUriPermission(pkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private void syncPrefsWithRoot(final boolean showToast) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean success = false;
+                try {
+                    Context deCtx = isDeviceProtectedStorage() ? MainActivity.this : createDeviceProtectedStorageContext();
+                    File deDir = deCtx.getDataDir();
+                    File srcFile = new File(deDir, "shared_prefs/" + PrefProvider.PREFS_NAME + ".xml");
+                    if (!srcFile.exists() && getFilesDir() != null && getFilesDir().getParentFile() != null) {
+                        srcFile = new File(getFilesDir().getParentFile(), "shared_prefs/" + PrefProvider.PREFS_NAME + ".xml");
+                    }
+                    if (srcFile.exists()) {
+                        String srcPath = srcFile.getAbsolutePath();
+                        String script =
+                            "for PKG in com.android.camera com.miui.camera; do\n" +
+                            "  TARGET_DIR=\"/data/data/$PKG/shared_prefs\"\n" +
+                            "  if [ ! -d \"/data/data/$PKG\" ] && [ -d \"/data/user/0/$PKG\" ]; then\n" +
+                            "    TARGET_DIR=\"/data/user/0/$PKG/shared_prefs\"\n" +
+                            "  fi\n" +
+                            "  PARENT=\"$(dirname \"$TARGET_DIR\")\"\n" +
+                            "  if [ -d \"$PARENT\" ]; then\n" +
+                            "    mkdir -p \"$TARGET_DIR\"\n" +
+                            "    chmod 777 \"$TARGET_DIR\"\n" +
+                            "    TARGET_FILE=\"$TARGET_DIR/cameratools_prefs.xml\"\n" +
+                            "    cp \"" + srcPath + "\" \"$TARGET_FILE\"\n" +
+                            "    chmod 666 \"$TARGET_FILE\"\n" +
+                            "    PKG_UID=$(stat -c '%u' \"$PARENT\" 2>/dev/null || echo 0)\n" +
+                            "    if [ \"$PKG_UID\" != \"0\" ]; then\n" +
+                            "      chown -R ${PKG_UID}:${PKG_UID} \"$TARGET_DIR\" 2>/dev/null || true\n" +
+                            "    fi\n" +
+                            "    restorecon -F \"$TARGET_FILE\" 2>/dev/null || true\n" +
+                            "    restorecon -R \"$TARGET_DIR\" 2>/dev/null || true\n" +
+                            "  fi\n" +
+                            "done\n";
+
+                        Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", script});
+                        try { p.getInputStream().close(); } catch (Throwable ignored) {}
+                        try { p.getErrorStream().close(); } catch (Throwable ignored) {}
+                        int exitCode = p.waitFor();
+                        success = (exitCode == 0);
+                    }
+                } catch (Throwable t) {
+                    success = false;
+                }
+
+                if (showToast) {
+                    final boolean finalSuccess = success;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (finalSuccess) {
+                                Toast.makeText(MainActivity.this, "Preferences synced to Camera storage via Root!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(MainActivity.this, "Root sync skipped or not granted (LSPosed IPC will handle preferences)", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
     private void makePrefsWorldReadable() {
         try {
             Context deCtx = isDeviceProtectedStorage() ? this : createDeviceProtectedStorageContext();
-            java.io.File deDir = deCtx.getDataDir();
+            File deDir = deCtx.getDataDir();
             if (deDir != null) {
                 deDir.setReadable(true, false);
                 deDir.setExecutable(true, false);
-                java.io.File spDir = new java.io.File(deDir, "shared_prefs");
+                File spDir = new File(deDir, "shared_prefs");
                 if (spDir.exists()) {
                     spDir.setReadable(true, false);
                     spDir.setExecutable(true, false);
-                    java.io.File f = new java.io.File(spDir, PrefProvider.PREFS_NAME + ".xml");
+                    File f = new File(spDir, PrefProvider.PREFS_NAME + ".xml");
                     if (f.exists()) f.setReadable(true, false);
                 }
             }
@@ -214,42 +306,34 @@ public class MainActivity extends Activity {
             // Also mirror to standard private storage
             SharedPreferences normalSp = getSharedPreferences(PrefProvider.PREFS_NAME, Context.MODE_PRIVATE);
             SharedPreferences.Editor normalEd = normalSp.edit();
-            for (java.util.Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
+            for (Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
                 if (entry.getValue() instanceof Boolean) {
                     normalEd.putBoolean(entry.getKey(), (Boolean) entry.getValue());
                 }
             }
             normalEd.commit();
 
-            java.io.File normalFiles = getFilesDir();
+            File normalFiles = getFilesDir();
             if (normalFiles != null) {
-                java.io.File normalDir = normalFiles.getParentFile();
+                File normalDir = normalFiles.getParentFile();
                 if (normalDir != null) {
                     normalDir.setReadable(true, false);
                     normalDir.setExecutable(true, false);
-                    java.io.File normalSpDir = new java.io.File(normalDir, "shared_prefs");
+                    File normalSpDir = new File(normalDir, "shared_prefs");
                     if (normalSpDir.exists()) {
                         normalSpDir.setReadable(true, false);
                         normalSpDir.setExecutable(true, false);
-                        java.io.File f = new java.io.File(normalSpDir, PrefProvider.PREFS_NAME + ".xml");
+                        File f = new File(normalSpDir, PrefProvider.PREFS_NAME + ".xml");
                         if (f.exists()) f.setReadable(true, false);
                     }
                 }
             }
 
-            // Attempt silent background sync to camera target dir if root available
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Process p = Runtime.getRuntime().exec(new String[]{
-                            "su", "-c",
-                            "mkdir -p /data/data/com.android.camera/shared_prefs && cp /data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml /data/data/com.android.camera/shared_prefs/cameratools_prefs.xml && chmod 666 /data/data/com.android.camera/shared_prefs/cameratools_prefs.xml && mkdir -p /data/data/com.miui.camera/shared_prefs && cp /data/user_de/0/io.github.official_arvind.cameratools/shared_prefs/io.github.official_arvind.cameratools_preferences.xml /data/data/com.miui.camera/shared_prefs/cameratools_prefs.xml && chmod 666 /data/data/com.miui.camera/shared_prefs/cameratools_prefs.xml"
-                        });
-                        p.waitFor();
-                    } catch (Throwable ignored) {}
-                }
-            }).start();
+            // Bypass Android 11+ Package Visibility for ContentProvider
+            grantCameraUriPermissions();
+
+            // Background Root sync
+            syncPrefsWithRoot(false);
         } catch (Throwable ignored) {}
     }
 
@@ -280,8 +364,11 @@ public class MainActivity extends Activity {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                syncPrefsWithRoot(false);
                 try {
                     Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", "am force-stop com.android.camera; am force-stop com.miui.camera"});
+                    try { p.getInputStream().close(); } catch (Throwable ignored) {}
+                    try { p.getErrorStream().close(); } catch (Throwable ignored) {}
                     p.waitFor();
                 } catch (Throwable t) {
                     try {
@@ -300,19 +387,22 @@ public class MainActivity extends Activity {
                             btnRestart.setText(R.string.btn_restart_camera);
                         }
                         try {
-                            android.content.Intent intent = getPackageManager().getLaunchIntentForPackage("com.android.camera");
+                            Intent intent = getPackageManager().getLaunchIntentForPackage("com.android.camera");
                             if (intent == null) {
                                 intent = getPackageManager().getLaunchIntentForPackage("com.miui.camera");
                             }
+                            if (intent == null) {
+                                intent = new Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
+                            }
                             if (intent != null) {
-                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                 startActivity(intent);
-                                android.widget.Toast.makeText(MainActivity.this, "Camera restarted!", android.widget.Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, "Camera restarted!", Toast.LENGTH_SHORT).show();
                             } else {
-                                android.widget.Toast.makeText(MainActivity.this, "Please open Camera manually.", android.widget.Toast.LENGTH_LONG).show();
+                                Toast.makeText(MainActivity.this, "Please open Camera manually.", Toast.LENGTH_LONG).show();
                             }
                         } catch (Exception e) {
-                            android.widget.Toast.makeText(MainActivity.this, "Please force stop Camera manually.", android.widget.Toast.LENGTH_LONG).show();
+                            Toast.makeText(MainActivity.this, "Please force stop Camera manually.", Toast.LENGTH_LONG).show();
                         }
                     }
                 });
@@ -320,16 +410,3 @@ public class MainActivity extends Activity {
         }).start();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

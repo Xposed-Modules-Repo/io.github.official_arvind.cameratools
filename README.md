@@ -8,13 +8,26 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/official-Arvind/CameraTools/releases/tag/v1.3.0"><img src="https://img.shields.io/badge/Release-v1.3.0--Pre--Release-blue?style=for-the-badge&logo=github" alt="v1.3.0 Pre-Release"></a>
+  <a href="https://github.com/official-Arvind/CameraTools/releases/tag/v1.3.1"><img src="https://img.shields.io/badge/Release-v1.3.1--Pre--Release-blue?style=for-the-badge&logo=github" alt="v1.3.1 Pre-Release"></a>
   <img src="https://img.shields.io/badge/Android-13%20%7C%2014%20(MIUI%20%2F%20HyperOS%20%2F%20AOSP)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 13/14">
-  <img src="https://img.shields.io/badge/Root-Required%20(Grant%20Superuser)-red?style=for-the-badge&logo=superuser" alt="Root Required">
+  <img src="https://img.shields.io/badge/Root-Optional%20(Recommended)-green?style=for-the-badge&logo=superuser" alt="Root Optional">
   <img src="https://img.shields.io/badge/Xposed-API_93%2B%20(LSPosed%20%2F%20Vector)-ff69b4?style=for-the-badge" alt="Xposed API 93+">
   <img src="https://img.shields.io/github/downloads/official-Arvind/CameraTools/total?style=for-the-badge&logo=github&label=Downloads&cacheSeconds=600" alt="Downloads">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-orange?style=for-the-badge" alt="GPL-3.0"></a>
 </p>
+
+---
+
+## 🌟 What's New in v1.3.1: Bulletproof Preference Architecture for AOSP & Vector / LSPosed
+
+> [!IMPORTANT]
+> **AOSP & Vector Preference Fix**: In v1.3.0, users on AOSP ROMs (e.g., Evolution X, LineageOS) running under Vector / modern LSPosed reported that preferences saved in the UI were not picked up at runtime (`exists=false canRead=false` in logcat). 
+> 
+> **v1.3.1 introduces a 4-Tier Bulletproof Architecture**:
+> 1. **LSPosed API 93 Modern XSharedPreferences**: Enables `xposedminversion="93"` and `xposedsharedprefs="true"` with `MODE_WORLD_READABLE` redirection. Settings are seamlessly shared between processes via framework IPC without touching the physical filesystem. Works **both with and without root**!
+> 2. **Automated SELinux Root Sync**: If root access is available, CameraTools automatically resolves the exact camera package UID (`stat -c %u`), creates the target directories, copies the XML config, sets `chmod 666`, applies `chown`, and runs `restorecon -F` to ensure full SELinux compliance.
+> 3. **Package Visibility Bypass**: Automatically grants `FLAG_GRANT_READ_URI_PERMISSION` across all supported camera packages to overcome Android 11+ Package Visibility filtering.
+> 4. **Live Lifecycle Reloading**: Hooks `Application.onCreate` and `Activity.onResume` so toggling settings in CameraTools takes effect the moment the camera opens.
 
 ---
 

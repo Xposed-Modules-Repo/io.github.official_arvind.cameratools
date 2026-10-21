@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.official_arvind.cameratools"
-    android:versionCode="130"
-    android:versionName="1.3.0">
+    android:versionCode="131"
+    android:versionName="1.3.1">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
 
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+    <uses-permission android:name="android.permission.ACCESS_SUPERUSER" />
 
     <queries>
         <package android:name="com.android.camera" />
@@ -43,7 +44,10 @@
             android:value="@string/xposed_description" />
         <meta-data
             android:name="xposedminversion"
-            android:value="54" />
+            android:value="93" />
+        <meta-data
+            android:name="xposedsharedprefs"
+            android:value="true" />
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposed_scope" />
