@@ -1,18 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Premium Rounded Squircle Dark Canvas -->
     <path
-        android:fillColor="#101522"
-        android:pathData="M54,54 m-54,0 a54,54 0 1,1 108,0 a54,54 0 1,1 -108,0" />
+        android:fillColor="#0B0F17"
+        android:strokeColor="#1E2838"
+        android:strokeWidth="1.5"
+        android:pathData="M20,10 h68 a18,18 0 0 1 18,18 v68 a18,18 0 0 1 -18,18 h-68 a18,18 0 0 1 -18,-18 v-68 a18,18 0 0 1 18,-18 z" />
+
+    <!-- Ambient Glow Ring -->
     <path
-        android:fillColor="#3DDC84"
-        android:pathData="M24,29 h60 a10,10 0 0 1 10,10 v40 a10,10 0 0 1 -10,10 h-60 a10,10 0 0 1 -10,-10 v-40 a10,10 0 0 1 10,-10 z" />
+        android:fillColor="#111722"
+        android:pathData="M54,55m-38,0a38,38 0 1,0 76,0a38,38 0 1,0 -76,0" />
+
+    <!-- Top Shutter Release Button -->
     <path
-        android:fillColor="#121212"
-        android:pathData="M54,59 m-15,0 a15,15 0 1 1 30,0 a15,15 0 1 1 -30,0" />
+        android:fillColor="#3A485E"
+        android:pathData="M35,28 h10 v3 h-10 z" />
+
+    <!-- Top Mode Dial Knurling -->
     <path
-        android:fillColor="#121212"
-        android:pathData="M79,39 m-5,0 a5,5 0 1 1 10,0 a5,5 0 1 1 -10,0" />
+        android:fillColor="#2D3A4D"
+        android:pathData="M65,29 h9 v2 h-9 z" />
+
+    <!-- Camera Body Shell (Solid Titanium Slate) -->
+    <path
+        android:fillColor="#1B222E"
+        android:strokeColor="#2E3C50"
+        android:strokeWidth="1.2"
+        android:pathData="M27,34 C27,31.5 29,29.5 31.5,29.5 L44,29.5 L47.5,26.5 C48.5,25.5 50,25 51.5,25 L56.5,25 C58,25 59.5,25.5 60.5,26.5 L64,29.5 L76.5,29.5 C79,29.5 81,31.5 81,34 L81,75 C81,77.5 79,79.5 76.5,79.5 L31.5,79.5 C29,79.5 27,77.5 27,75 Z" />
+
+    <!-- Camera Grip Texture / Accent Stripe -->
+    <path
+        android:fillColor="#141923"
+        android:pathData="M27,38 h6 v36 h-6 z" />
+
+    <!-- Leica Signature Ruby Accent Badge (Top Right) -->
+    <path
+        android:fillColor="#FF1744"
+        android:pathData="M73,35 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="#FF8A80"
+        android:pathData="M72,34 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0" />
+
+    <!-- Autofocus Assist / Sensor Dot (Top Left) -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M37,35 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- Outer Metallic Lens Bezel -->
+    <path
+        android:fillColor="#121822"
+        android:strokeColor="#3E4F69"
+        android:strokeWidth="1.5"
+        android:pathData="M54,56 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
+
+    <!-- Vibrant Cyan Electric Precision Rim -->
+    <path
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="1.0"
+        android:pathData="M54,56 m-17,0 a17,17 0 1,0 34,0 a17,17 0 1,0 -34,0" />
+
+    <!-- Deep Optical Barrel Base -->
+    <path
+        android:fillColor="#0A0E15"
+        android:pathData="M54,56 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0" />
+
+    <!-- Precision Mechanical Aperture Blades (Hexagonal Iris Pattern) -->
+    <path
+        android:fillColor="#1A2433"
+        android:strokeColor="#253245"
+        android:strokeWidth="0.5"
+        android:pathData="M54,44 L63,48 L58,54 Z" />
+    <path
+        android:fillColor="#1A2433"
+        android:strokeColor="#253245"
+        android:strokeWidth="0.5"
+        android:pathData="M63,48 L65,58 L57,59 Z" />
+    <path
+        android:fillColor="#1A2433"
+        android:strokeColor="#253245"
+        android:strokeWidth="0.5"
+        android:pathData="M65,58 L58,66 L52,60 Z" />
+    <path
+        android:fillColor="#1A2433"
+        android:strokeColor="#253245"
+        android:strokeWidth="0.5"
+        android:pathData="M58,66 L47,64 L50,57 Z" />
+    <path
+        android:fillColor="#1A2433"
+        android:strokeColor="#253245"
+        android:strokeWidth="0.5"
+        android:pathData="M47,64 L44,53 L51,52 Z" />
+    <path
+        android:fillColor="#1A2433"
+        android:strokeColor="#253245"
+        android:strokeWidth="0.5"
+        android:pathData="M44,53 L52,45 L56,51 Z" />
+
+    <!-- Central Optic Core -->
+    <path
+        android:fillColor="#06090E"
+        android:pathData="M54,56 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
+
+    <!-- Anti-Reflective Optical Glass Coating Arc (Warm Magenta) -->
+    <path
+        android:strokeColor="#80D500F9"
+        android:strokeWidth="1.2"
+        android:pathData="M60,56 A6,6 0 0,1 54,62" />
+
+    <!-- Curved Lens Flare Glare Arc (Cyan / Pure White Crystal Highlight) -->
+    <path
+        android:strokeColor="#CC00E5FF"
+        android:strokeWidth="1.6"
+        android:pathData="M48,56 A6,6 0 0,1 54,50" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,51 m-1.2,0 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0" />
+
 </vector>

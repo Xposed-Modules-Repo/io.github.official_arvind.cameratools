@@ -60,7 +60,7 @@ CameraTools automatically detects your ROM environment (`RomDetector`) and injec
 | :--- | :--- | :--- |
 | **🎥 4K 60FPS Video Recording** | Unlocks silky-smooth 4K (3840×2160) recording at 60 frames per second on the rear Sony IMX766 sensor. | Hooks Xiaomi's `ComponentConfigVideoQuality.isSupport60FPS` and quality profile `2108`. In AOSP/GCam, injects `[60, 60]` and `[30, 60]` into `CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES` and verifies `CamcorderProfile.QUALITY_2160P`. |
 | **🎬 150 Mbps Cinematic Bitrate** | Vastly elevates video recording fidelity from compressed stock ~30–50 Mbps to a broadcast-grade 150 Mbps stream. | In Xiaomi Camera, replaces compression tables with 150,000,000 bps. In GCam, overrides `MediaFormat` `bitrate` keys. In AOSP, hooks `MediaRecorder.setVideoEncodingBitRate`. |
-| **🎞️ 50MP Bayer RAW Capture (DNG)** | Produces uncompressed, true full-sensor 50-megapixel RAW DNG files in Pro Mode for maximum dynamic range and post-processing flexibility in Lightroom/Snapseed. | Hooks `ComponentConfigRaw` and bypasses the 12MP sensor-binning filter on raw streams. |
+| **🎞️ Pro RAW (DNG) Native Bayer Capture** | Produces uncompressed, true 12.5MP native Bayer RAW (DNG) digital negatives in Pro Mode with full dynamic range and post-processing flexibility in Lightroom/Photoshop. | Hooks Pro Mode RAW stream flags while ensuring hardware HAL stability. |
 | **🔴 Leica Profiles & Watermarks** | Unlocks authentic Leica Authentic & Vibrant color science profiles, custom Leica tuning, and genuine Leica watermarks. | Bypasses Xiaomi's regional Chinese-ROM restriction flags (`isSupportLeicaColor`, `isSupportLeicaFilter`, watermark config). |
 | **👥 Dual-Camera Stream (Director Mode 204)** | Enables simultaneous video recording using both the rear main sensor and front selfie camera. | Activates hardware pipeline mode ID `204` with MediaTek Picture-in-Picture (MTK PIP) vendor tags and removes device blacklists. |
 | **⏱️ Extended Pro Shutter Range (60s – 1/16000s)** | Extends manual shutter speed up to 60 full seconds for astrophotography and long exposures, and down to 1/16000s for freezing fast action. | Hooks `ComponentManuallyDualLens` and framework `CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE` (62,500ns – 60,000,000,000ns). |
@@ -78,7 +78,7 @@ We have designed CameraTools specifically to support custom ROMs such as **Linea
 ### How to Test on AOSP:
 
 1. **Install Module**:
-   * Download and install the latest `v1.3.1` APK from [Releases](https://github.com/official-Arvind/CameraTools/releases).
+   * Download and install the latest `v1.3.0` APK from [Releases](https://github.com/official-Arvind/CameraTools/releases).
 2. **Grant Superuser (Root) Permissions**:
    * Open the **CameraTools** app. When prompted by Magisk, KernelSU, or APatch, tap **Grant** (Always Allow) so the app can sync settings directly to target camera data directories and execute quick camera restarts.
 3. **Enable in LSPosed / Vector**:

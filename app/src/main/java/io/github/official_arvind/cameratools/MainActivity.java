@@ -28,6 +28,13 @@ public class MainActivity extends Activity {
     private Switch swShutter;
     private Switch swThermal;
     private Switch swHighResPhoto;
+    private Switch swLogFormat;
+    private Switch swMiMovie;
+    private Switch swPrompter;
+    private Switch swFocusPeak;
+    private Switch swLeicaLenses;
+    private Switch swDocMode;
+    private Switch swAudioMic;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +97,13 @@ public class MainActivity extends Activity {
         swShutter = findViewById(R.id.switch_shutter);
         swThermal = findViewById(R.id.switch_thermal);
         swHighResPhoto = findViewById(R.id.switch_high_res_photo);
+        swLogFormat = findViewById(R.id.switch_log_format);
+        swMiMovie = findViewById(R.id.switch_mimovie);
+        swPrompter = findViewById(R.id.switch_prompter);
+        swFocusPeak = findViewById(R.id.switch_focus_peak);
+        swLeicaLenses = findViewById(R.id.switch_leica_lenses);
+        swDocMode = findViewById(R.id.switch_doc_mode);
+        swAudioMic = findViewById(R.id.switch_audio_mic);
 
         // Ensure defaults are saved if any key is missing
         SharedPreferences.Editor edInit = prefs.edit();
@@ -102,6 +116,14 @@ public class MainActivity extends Activity {
         if (!prefs.contains(PrefProvider.KEY_SHUTTER)) { edInit.putBoolean(PrefProvider.KEY_SHUTTER, false); changed = true; }
         if (!prefs.contains(PrefProvider.KEY_DISABLE_THERMAL)) { edInit.putBoolean(PrefProvider.KEY_DISABLE_THERMAL, false); changed = true; }
         if (!prefs.contains(PrefProvider.KEY_HIGH_RES_PHOTO)) { edInit.putBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_LOG_FORMAT)) { edInit.putBoolean(PrefProvider.KEY_LOG_FORMAT, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_MIMOVIE)) { edInit.putBoolean(PrefProvider.KEY_MIMOVIE, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_PROMPTER)) { edInit.putBoolean(PrefProvider.KEY_PROMPTER, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_FOCUS_PEAK)) { edInit.putBoolean(PrefProvider.KEY_FOCUS_PEAK, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_LEICA_LENSES)) { edInit.putBoolean(PrefProvider.KEY_LEICA_LENSES, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_TRACK_FOCUS)) { edInit.putBoolean(PrefProvider.KEY_TRACK_FOCUS, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_DOC_MODE)) { edInit.putBoolean(PrefProvider.KEY_DOC_MODE, false); changed = true; }
+        if (!prefs.contains(PrefProvider.KEY_AUDIO_MIC)) { edInit.putBoolean(PrefProvider.KEY_AUDIO_MIC, false); changed = true; }
         if (changed) {
             edInit.commit();
         }
@@ -138,7 +160,9 @@ public class MainActivity extends Activity {
     private boolean areAllEnabled() {
         return sw4k60.isChecked() && swBitrate.isChecked() && swRaw.isChecked()
                 && swLeica.isChecked() && swDualVideo.isChecked() && swShutter.isChecked()
-                && swThermal.isChecked() && swHighResPhoto.isChecked();
+                && swThermal.isChecked() && swHighResPhoto.isChecked() && swLogFormat.isChecked()
+                && swMiMovie.isChecked() && swPrompter.isChecked() && swFocusPeak.isChecked()
+                && swLeicaLenses.isChecked() && swDocMode.isChecked() && swAudioMic.isChecked();
     }
 
     private void updateToggleAllButtonText(Button btn) {
@@ -156,6 +180,13 @@ public class MainActivity extends Activity {
         swShutter.setChecked(prefs.getBoolean(PrefProvider.KEY_SHUTTER, false));
         swThermal.setChecked(prefs.getBoolean(PrefProvider.KEY_DISABLE_THERMAL, false));
         swHighResPhoto.setChecked(prefs.getBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, false));
+        swLogFormat.setChecked(prefs.getBoolean(PrefProvider.KEY_LOG_FORMAT, false));
+        swMiMovie.setChecked(prefs.getBoolean(PrefProvider.KEY_MIMOVIE, false));
+        swPrompter.setChecked(prefs.getBoolean(PrefProvider.KEY_PROMPTER, false));
+        swFocusPeak.setChecked(prefs.getBoolean(PrefProvider.KEY_FOCUS_PEAK, false));
+        swLeicaLenses.setChecked(prefs.getBoolean(PrefProvider.KEY_TRACK_FOCUS, prefs.getBoolean(PrefProvider.KEY_LEICA_LENSES, false)));
+        swDocMode.setChecked(prefs.getBoolean(PrefProvider.KEY_DOC_MODE, false));
+        swAudioMic.setChecked(prefs.getBoolean(PrefProvider.KEY_AUDIO_MIC, false));
     }
 
     private void setupListeners() {
@@ -169,6 +200,13 @@ public class MainActivity extends Activity {
         swShutter.setOnCheckedChangeListener(listener);
         swThermal.setOnCheckedChangeListener(listener);
         swHighResPhoto.setOnCheckedChangeListener(listener);
+        swLogFormat.setOnCheckedChangeListener(listener);
+        swMiMovie.setOnCheckedChangeListener(listener);
+        swPrompter.setOnCheckedChangeListener(listener);
+        swFocusPeak.setOnCheckedChangeListener(listener);
+        swLeicaLenses.setOnCheckedChangeListener(listener);
+        swDocMode.setOnCheckedChangeListener(listener);
+        swAudioMic.setOnCheckedChangeListener(listener);
     }
 
     private class CompoundButtonListener implements android.widget.CompoundButton.OnCheckedChangeListener {
@@ -191,6 +229,16 @@ public class MainActivity extends Activity {
             else if (id == R.id.switch_shutter) ed.putBoolean(PrefProvider.KEY_SHUTTER, isChecked);
             else if (id == R.id.switch_thermal) ed.putBoolean(PrefProvider.KEY_DISABLE_THERMAL, isChecked);
             else if (id == R.id.switch_high_res_photo) ed.putBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, isChecked);
+            else if (id == R.id.switch_log_format) ed.putBoolean(PrefProvider.KEY_LOG_FORMAT, isChecked);
+            else if (id == R.id.switch_mimovie) ed.putBoolean(PrefProvider.KEY_MIMOVIE, isChecked);
+            else if (id == R.id.switch_prompter) ed.putBoolean(PrefProvider.KEY_PROMPTER, isChecked);
+            else if (id == R.id.switch_focus_peak) ed.putBoolean(PrefProvider.KEY_FOCUS_PEAK, isChecked);
+            else if (id == R.id.switch_leica_lenses) {
+                ed.putBoolean(PrefProvider.KEY_TRACK_FOCUS, isChecked);
+                ed.putBoolean(PrefProvider.KEY_LEICA_LENSES, isChecked);
+            }
+            else if (id == R.id.switch_doc_mode) ed.putBoolean(PrefProvider.KEY_DOC_MODE, isChecked);
+            else if (id == R.id.switch_audio_mic) ed.putBoolean(PrefProvider.KEY_AUDIO_MIC, isChecked);
             ed.commit();
             makePrefsWorldReadable();
             updateToggleAllButtonText(btnToggle);
@@ -346,6 +394,13 @@ public class MainActivity extends Activity {
         swShutter.setChecked(state);
         swThermal.setChecked(state);
         swHighResPhoto.setChecked(state);
+        swLogFormat.setChecked(state);
+        swMiMovie.setChecked(state);
+        swPrompter.setChecked(state);
+        swFocusPeak.setChecked(state);
+        swLeicaLenses.setChecked(state);
+        swDocMode.setChecked(state);
+        swAudioMic.setChecked(state);
         prefs.edit()
             .putBoolean(PrefProvider.KEY_4K60, state)
             .putBoolean(PrefProvider.KEY_BITRATE, state)
@@ -355,6 +410,14 @@ public class MainActivity extends Activity {
             .putBoolean(PrefProvider.KEY_SHUTTER, state)
             .putBoolean(PrefProvider.KEY_DISABLE_THERMAL, state)
             .putBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, state)
+            .putBoolean(PrefProvider.KEY_LOG_FORMAT, state)
+            .putBoolean(PrefProvider.KEY_MIMOVIE, state)
+            .putBoolean(PrefProvider.KEY_PROMPTER, state)
+            .putBoolean(PrefProvider.KEY_FOCUS_PEAK, state)
+            .putBoolean(PrefProvider.KEY_LEICA_LENSES, state)
+            .putBoolean(PrefProvider.KEY_TRACK_FOCUS, state)
+            .putBoolean(PrefProvider.KEY_DOC_MODE, state)
+            .putBoolean(PrefProvider.KEY_AUDIO_MIC, state)
             .commit();
         makePrefsWorldReadable();
         Toast.makeText(this, state ? "All features activated" : "All features deactivated", Toast.LENGTH_SHORT).show();

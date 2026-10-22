@@ -28,6 +28,13 @@ public class HookMain implements IXposedHookLoadPackage {
     private volatile boolean enableShutter = false;
     private volatile boolean enableDisableThermal = false;
     private volatile boolean enableHighResPhoto = false; // opt-in — default OFF (requires camera restart to take effect)
+    private volatile boolean enableLogFormat = false;
+    private volatile boolean enableMiMovie = false;
+    private volatile boolean enablePrompter = false;
+    private volatile boolean enableFocusPeak = false;
+    private volatile boolean enableTrackFocus = false;
+    private volatile boolean enableDocMode = false;
+    private volatile boolean enableAudioMic = false;
 
     private XSharedPreferences xsp;
 
@@ -87,7 +94,28 @@ public class HookMain implements IXposedHookLoadPackage {
         // 8. 50MP Normal Photo — MediaTek ISP remosaic in standard photo mode
         hookHighResPhoto(lpparam);
 
-        // 9. Framework-level hooks (work across ALL camera apps on AOSP)
+        // 9. Pro Video LOG Profile
+        hookVideoLog(lpparam);
+
+        // 10. Cinematic MiMovie Widescreen (2.39:1)
+        hookMiMovie(lpparam);
+
+        // 11. Video Teleprompter
+        hookVideoPrompter(lpparam);
+
+        // 12. Focus Peaking & Zebra Exposure Assist
+        hookFocusPeakingZebra(lpparam);
+
+        // 13. Motion Tracking Focus (AI Eye & Subject Auto-Tracking)
+        hookTrackFocus(lpparam);
+
+        // 14. Document Scanner Mode (Mode 186)
+        hookDocumentMode(lpparam);
+
+        // 15. Directional Audio Zoom & Bluetooth Headset Mic
+        hookAudioMic(lpparam);
+
+        // 16. Framework-level hooks (work across ALL camera apps on AOSP)
         hookFrameworkLevel(lpparam);
         if (isGCam) hookGCamSpecific(lpparam);
     }
@@ -111,6 +139,13 @@ public class HookMain implements IXposedHookLoadPackage {
                 enableShutter = xsp.getBoolean(PrefProvider.KEY_SHUTTER, false);
                 enableDisableThermal = xsp.getBoolean(PrefProvider.KEY_DISABLE_THERMAL, false);
                 enableHighResPhoto = xsp.getBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, false);
+                enableLogFormat = xsp.getBoolean(PrefProvider.KEY_LOG_FORMAT, false);
+                enableMiMovie = xsp.getBoolean(PrefProvider.KEY_MIMOVIE, false);
+                enablePrompter = xsp.getBoolean(PrefProvider.KEY_PROMPTER, false);
+                enableFocusPeak = xsp.getBoolean(PrefProvider.KEY_FOCUS_PEAK, false);
+                enableTrackFocus = xsp.getBoolean(PrefProvider.KEY_TRACK_FOCUS, xsp.getBoolean(PrefProvider.KEY_LEICA_LENSES, false));
+                enableDocMode = xsp.getBoolean(PrefProvider.KEY_DOC_MODE, false);
+                enableAudioMic = xsp.getBoolean(PrefProvider.KEY_AUDIO_MIC, false);
                 loaded = true;
                 XposedBridge.log("[" + TAG + "] Preferences successfully loaded via LSPosed RemotePreferences (API 93)");
             }
@@ -125,7 +160,10 @@ public class HookMain implements IXposedHookLoadPackage {
 
         XposedBridge.log("[" + TAG + "] Final Preferences applied: 4k60=" + enable4k60 + ", bitrate=" + enableBitrate +
                 ", raw=" + enableRaw + ", leica=" + enableLeica + ", dual=" + enableDualVideo + ", shutter=" + enableShutter +
-                ", thermalBypass=" + enableDisableThermal + ", 50MP=" + enableHighResPhoto);
+                ", thermalBypass=" + enableDisableThermal + ", 50MP=" + enableHighResPhoto +
+                ", log=" + enableLogFormat + ", mimovie=" + enableMiMovie + ", prompter=" + enablePrompter +
+                ", focusPeak=" + enableFocusPeak + ", trackFocus=" + enableTrackFocus + ", docMode=" + enableDocMode +
+                ", audioMic=" + enableAudioMic);
     }
 
     private boolean reloadPrefsDirect() {
@@ -158,6 +196,13 @@ public class HookMain implements IXposedHookLoadPackage {
                             else if (PrefProvider.KEY_SHUTTER.equals(name)) enableShutter = val;
                             else if (PrefProvider.KEY_DISABLE_THERMAL.equals(name)) enableDisableThermal = val;
                             else if (PrefProvider.KEY_HIGH_RES_PHOTO.equals(name)) enableHighResPhoto = val;
+                            else if (PrefProvider.KEY_LOG_FORMAT.equals(name)) enableLogFormat = val;
+                            else if (PrefProvider.KEY_MIMOVIE.equals(name)) enableMiMovie = val;
+                            else if (PrefProvider.KEY_PROMPTER.equals(name)) enablePrompter = val;
+                            else if (PrefProvider.KEY_FOCUS_PEAK.equals(name)) enableFocusPeak = val;
+                            else if (PrefProvider.KEY_TRACK_FOCUS.equals(name) || PrefProvider.KEY_LEICA_LENSES.equals(name)) enableTrackFocus = val;
+                            else if (PrefProvider.KEY_DOC_MODE.equals(name)) enableDocMode = val;
+                            else if (PrefProvider.KEY_AUDIO_MIC.equals(name)) enableAudioMic = val;
                         }
                         eventType = parser.next();
                     }
@@ -186,6 +231,13 @@ public class HookMain implements IXposedHookLoadPackage {
                     enableShutter = xsp.getBoolean(PrefProvider.KEY_SHUTTER, enableShutter);
                     enableDisableThermal = xsp.getBoolean(PrefProvider.KEY_DISABLE_THERMAL, enableDisableThermal);
                     enableHighResPhoto = xsp.getBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, enableHighResPhoto);
+                    enableLogFormat = xsp.getBoolean(PrefProvider.KEY_LOG_FORMAT, enableLogFormat);
+                    enableMiMovie = xsp.getBoolean(PrefProvider.KEY_MIMOVIE, enableMiMovie);
+                    enablePrompter = xsp.getBoolean(PrefProvider.KEY_PROMPTER, enablePrompter);
+                    enableFocusPeak = xsp.getBoolean(PrefProvider.KEY_FOCUS_PEAK, enableFocusPeak);
+                    enableTrackFocus = xsp.getBoolean(PrefProvider.KEY_TRACK_FOCUS, xsp.getBoolean(PrefProvider.KEY_LEICA_LENSES, enableTrackFocus));
+                    enableDocMode = xsp.getBoolean(PrefProvider.KEY_DOC_MODE, enableDocMode);
+                    enableAudioMic = xsp.getBoolean(PrefProvider.KEY_AUDIO_MIC, enableAudioMic);
                 }
             }
         } catch (Throwable ignored) {}
@@ -209,6 +261,13 @@ public class HookMain implements IXposedHookLoadPackage {
                         enableShutter = b.getBoolean(PrefProvider.KEY_SHUTTER, enableShutter);
                         enableDisableThermal = b.getBoolean(PrefProvider.KEY_DISABLE_THERMAL, enableDisableThermal);
                         enableHighResPhoto = b.getBoolean(PrefProvider.KEY_HIGH_RES_PHOTO, enableHighResPhoto);
+                        enableLogFormat = b.getBoolean(PrefProvider.KEY_LOG_FORMAT, enableLogFormat);
+                        enableMiMovie = b.getBoolean(PrefProvider.KEY_MIMOVIE, enableMiMovie);
+                        enablePrompter = b.getBoolean(PrefProvider.KEY_PROMPTER, enablePrompter);
+                        enableFocusPeak = b.getBoolean(PrefProvider.KEY_FOCUS_PEAK, enableFocusPeak);
+                        enableTrackFocus = b.getBoolean(PrefProvider.KEY_TRACK_FOCUS, b.getBoolean(PrefProvider.KEY_LEICA_LENSES, enableTrackFocus));
+                        enableDocMode = b.getBoolean(PrefProvider.KEY_DOC_MODE, enableDocMode);
+                        enableAudioMic = b.getBoolean(PrefProvider.KEY_AUDIO_MIC, enableAudioMic);
                         XposedBridge.log("[" + TAG + "] Preferences updated via ContentProvider: 4k60=" + enable4k60 + ", 50MP=" + enableHighResPhoto);
                     }
                 }
@@ -287,7 +346,8 @@ public class HookMain implements IXposedHookLoadPackage {
                     if (!enable4k60) return;
                     if (param.args.length > 0 && param.args[0] instanceof Integer) {
                         int quality = (Integer) param.args[0];
-                        if (quality == 2108) {
+                        // Allow 4K 60FPS (2108), 4K 30FPS (2106), and standard 4K (8) for both rear and front
+                        if (quality == 2108 || quality == 2106 || quality == 8) {
                             param.setResult(true);
                         }
                     }
@@ -302,34 +362,39 @@ public class HookMain implements IXposedHookLoadPackage {
                         List list = (List) param.args[0];
                         int mode = param.args.length > 1 && param.args[1] instanceof Integer ? (Integer) param.args[1] : 162;
                         boolean has4k60 = false;
+                        boolean has4k30 = false;
                         for (Object item : list) {
                             try {
                                 Object val = XposedHelpers.getObjectField(item, "mValue");
                                 if ("8,60".equals(val) || (val != null && val.toString().contains("2108"))) {
                                     has4k60 = true;
-                                    break;
+                                }
+                                if ("8".equals(val) || "8,30".equals(val) || (val != null && val.toString().contains("2106"))) {
+                                    has4k30 = true;
                                 }
                             } catch (Throwable ignored) {}
                         }
-                        if (!has4k60) {
-                            try {
-                                Method createMethod = null;
-                                for (Method m : param.thisObject.getClass().getDeclaredMethods()) {
-                                    if (m.getName().equals("createNormalQuality") && m.getParameterTypes().length >= 4) {
-                                        createMethod = m;
-                                        break;
-                                    }
+                        try {
+                            Method createMethod = null;
+                            for (Method m : param.thisObject.getClass().getDeclaredMethods()) {
+                                if (m.getName().equals("createNormalQuality") && m.getParameterTypes().length >= 4) {
+                                    createMethod = m;
+                                    break;
                                 }
-                                if (createMethod != null) {
-                                    createMethod.setAccessible(true);
-                                    Object newItem = createMethod.invoke(param.thisObject, 2108, mode, 162, 180);
-                                    if (newItem != null) {
-                                        list.add(newItem);
-                                    }
-                                }
-                            } catch (Throwable t) {
-                                XposedBridge.log("[" + TAG + "] init4K injection error: " + t.getMessage());
                             }
+                            if (createMethod != null) {
+                                createMethod.setAccessible(true);
+                                if (!has4k30) {
+                                    Object item30 = createMethod.invoke(param.thisObject, 8, mode, 162, 180);
+                                    if (item30 != null) list.add(0, item30);
+                                }
+                                if (!has4k60) {
+                                    Object item60 = createMethod.invoke(param.thisObject, 2108, mode, 162, 180);
+                                    if (item60 != null) list.add(item60);
+                                }
+                            }
+                        } catch (Throwable t) {
+                            XposedBridge.log("[" + TAG + "] init4K injection error: " + t.getMessage());
                         }
                     }
                 }
@@ -343,37 +408,69 @@ public class HookMain implements IXposedHookLoadPackage {
                     if (res instanceof List) {
                         List list = (List) res;
                         boolean has4k60 = false;
+                        boolean has4k30 = false;
                         for (Object item : list) {
                             try {
                                 Object val = XposedHelpers.getObjectField(item, "mValue");
                                 if ("8,60".equals(val) || (val != null && val.toString().contains("2108"))) {
                                     has4k60 = true;
+                                }
+                                if ("8".equals(val) || "8,30".equals(val) || (val != null && val.toString().contains("2106"))) {
+                                    has4k30 = true;
+                                }
+                            } catch (Throwable ignored) {}
+                        }
+                        try {
+                            Method createMethod = null;
+                            for (Method m : param.thisObject.getClass().getDeclaredMethods()) {
+                                if (m.getName().equals("createNormalQuality") && m.getParameterTypes().length >= 4) {
+                                    createMethod = m;
                                     break;
                                 }
-                            } catch (Throwable ignored) {}
-                        }
-                        if (!has4k60) {
-                            try {
-                                Method createMethod = null;
-                                for (Method m : param.thisObject.getClass().getDeclaredMethods()) {
-                                    if (m.getName().equals("createNormalQuality") && m.getParameterTypes().length >= 4) {
-                                        createMethod = m;
-                                        break;
-                                    }
+                            }
+                            if (createMethod != null) {
+                                createMethod.setAccessible(true);
+                                // Inject 4K 30FPS and 4K 60FPS for both rear and front cameras
+                                if (!has4k30) {
+                                    Object item30 = createMethod.invoke(param.thisObject, 8, 162, 162, 180);
+                                    if (item30 != null) list.add(0, item30);
                                 }
-                                if (createMethod != null) {
-                                    createMethod.setAccessible(true);
-                                    Object newItem = createMethod.invoke(param.thisObject, 2108, 162, 162, 180);
-                                    if (newItem != null) list.add(newItem);
+                                if (!has4k60) {
+                                    Object item60 = createMethod.invoke(param.thisObject, 2108, 162, 162, 180);
+                                    if (item60 != null) list.add(item60);
                                 }
-                            } catch (Throwable ignored) {}
-                        }
+                            }
+                        } catch (Throwable ignored) {}
                     }
                 }
             });
         } catch (Throwable t) {
             XposedBridge.log("[" + TAG + "] Hook 4K quality failed: " + t.getMessage());
         }
+
+        // CameraCapabilities & CameraCapabilitiesUtil 4K quality unlock (unlocks front camera 4K support)
+        try {
+            XC_MethodHook videoQualitySupportHook = new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if (!enable4k60) return;
+                    if (param.args.length > 0 && param.args[0] instanceof Integer) {
+                        int q = (Integer) param.args[0];
+                        if (q == 8 || q == 2108 || q == 2106) {
+                            param.setResult(true);
+                        }
+                    }
+                }
+            };
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                XposedBridge.hookAllMethods(capsClass, "isSupportVideoQuality", videoQualitySupportHook);
+            }
+            Class<?> capsUtilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (capsUtilClass != null) {
+                XposedBridge.hookAllMethods(capsUtilClass, "isSupportVideoQuality", videoQualitySupportHook);
+            }
+        } catch (Throwable ignored) {}
 
         // SubFPS toggle button
         try {
@@ -475,56 +572,83 @@ public class HookMain implements IXposedHookLoadPackage {
     }
 
     // ==========================================
+    // Camera Mode Helper
+    // ==========================================
+    private static int getCurrentCameraMode(ClassLoader cl) {
+        try {
+            Class<?> dr = XposedHelpers.findClassIfExists("com.android.camera.data.DataRepository", cl);
+            if (dr != null) {
+                Method mDataGlobal = dr.getMethod("dataItemGlobal");
+                Object global = mDataGlobal.invoke(null);
+                if (global != null) {
+                    Method mMode = global.getClass().getMethod("getCurrentMode");
+                    Object modeObj = mMode.invoke(global);
+                    if (modeObj instanceof Integer) {
+                        return (Integer) modeObj;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return 163; // Default: Photo mode (163)
+    }
+
+    // ==========================================
     // 3. 50MP Full Bayer RAW Capture
     // ==========================================
     private void hookRaw50MP(final XC_LoadPackage.LoadPackageParam lpparam) {
         try {
-            Class<?> utilClass = XposedHelpers.findClass("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
-            XposedBridge.hookAllMethods(utilClass, "isSupportRaw", new XC_MethodHook() {
+            XC_MethodHook trueHook = new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     if (!enableRaw) return;
                     param.setResult(true);
                 }
-            });
+            };
 
-            XposedBridge.hookAllMethods(utilClass, "isSupportUltraPixelRaw", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    if (!enableRaw) return;
-                    param.setResult(true);
-                }
-            });
+            Class<?> utilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (utilClass != null) {
+                XposedBridge.hookAllMethods(utilClass, "isSupportRaw", trueHook);
+                XposedBridge.hookAllMethods(utilClass, "isSupportUltraPixelRaw", trueHook);
+                XposedBridge.hookAllMethods(utilClass, "isUltraPixelRawPhotographySupported", trueHook);
+            }
 
-            Class<?> capsClass = XposedHelpers.findClass("com.android.camera2.CameraCapabilities", lpparam.classLoader);
-            XposedBridge.hookAllMethods(capsClass, "isSupportRaw", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    if (!enableRaw) return;
-                    param.setResult(true);
-                }
-            });
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                XposedBridge.hookAllMethods(capsClass, "isSupportRaw", trueHook);
+                XposedBridge.hookAllMethods(capsClass, "isSupportUltraPixelRaw", trueHook);
+                XposedBridge.hookAllMethods(capsClass, "isUltraPixelRawPhotographySupported", trueHook);
+            }
 
-            XposedBridge.hookAllMethods(capsClass, "isSupportUltraPixelRaw", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    if (!enableRaw) return;
-                    param.setResult(true);
-                }
-            });
+            // HardwareCapabilities wide ultra pixel raw support
+            Class<?> hwCaps = XposedHelpers.findClassIfExists("com.android.camera2.HardwareCapabilities", lpparam.classLoader);
+            if (hwCaps != null) {
+                XposedBridge.hookAllMethods(hwCaps, "isUltraPixelRawSupportedByWide", trueHook);
+            }
 
-            try {
-                Class<?> rubyClass = XposedHelpers.findClass("com.mi.device.Ruby", lpparam.classLoader);
-                XposedBridge.hookAllMethods(rubyClass, "OooOo00", new XC_MethodHook() {
+            // CameraSettings.isUltraPixelRawOn() -> MUST ONLY return true in Pro mode (167)
+            // Strictly exclude Photo mode (163) to prevent HAL stream configuration failure on startup
+            Class<?> cameraSettings = XposedHelpers.findClassIfExists("com.android.camera.CameraSettings", lpparam.classLoader);
+            if (cameraSettings != null) {
+                XposedBridge.hookAllMethods(cameraSettings, "isUltraPixelRawOn", new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         if (!enableRaw) return;
-                        param.setResult(true);
+                        int mode = getCurrentCameraMode(lpparam.classLoader);
+                        if (mode == 167) { // Strictly Pro mode ONLY
+                            param.setResult(true);
+                        }
                     }
                 });
+            }
+
+            try {
+                Class<?> rubyClass = XposedHelpers.findClassIfExists("com.mi.device.Ruby", lpparam.classLoader);
+                if (rubyClass != null) {
+                    XposedBridge.hookAllMethods(rubyClass, "OooOo00", trueHook);
+                }
             } catch (Throwable ignored) {}
 
-            XposedBridge.log("[" + TAG + "] 50MP Ultra RAW hooked");
+            XposedBridge.log("[" + TAG + "] RAW capture hooked safely (native 12.5MP Bayer stream)");
         } catch (Throwable t) {
             XposedBridge.log("[" + TAG + "] Hook RAW failed: " + t.getMessage());
         }
@@ -535,25 +659,150 @@ public class HookMain implements IXposedHookLoadPackage {
     // ==========================================
     private void hookLeicaProfiles(final XC_LoadPackage.LoadPackageParam lpparam) {
         try {
-            Class<?> utilClass = XposedHelpers.findClass("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
             XC_MethodHook trueHook = new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     if (!enableLeica) return;
+                    if (param.method instanceof java.lang.reflect.Method) {
+                        java.lang.reflect.Method m = (java.lang.reflect.Method) param.method;
+                        if (m.getReturnType() != boolean.class && m.getReturnType() != Boolean.class) return;
+                    }
                     param.setResult(true);
                 }
             };
 
-            XposedBridge.hookAllMethods(utilClass, "isSupportCvType", trueHook);
-            XposedBridge.hookAllMethods(utilClass, "isSupportCvWatermark", trueHook);
-            XposedBridge.hookAllMethods(utilClass, "isSupportCvLens", trueHook);
-            XposedBridge.hookAllMethods(utilClass, "isSupportCvLensModeSession", trueHook);
+            XC_MethodHook cvThemeHook = new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if (!enableLeica) return;
+                    if (param.method instanceof java.lang.reflect.Method) {
+                        java.lang.reflect.Method m = (java.lang.reflect.Method) param.method;
+                        if (m.getReturnType() != String.class) return;
+                    }
+                    param.setResult("cv.MiThemeCompatCV");
+                }
+            };
 
-            Class<?> capsClass = XposedHelpers.findClass("com.android.camera2.CameraCapabilities", lpparam.classLoader);
-            XposedBridge.hookAllMethods(capsClass, "isSupportCvType", trueHook);
-            XposedBridge.hookAllMethods(capsClass, "isSupportCvWatermark", trueHook);
+            // 1. Hook DataItemFeature (o000Oo0.OooO00o)
+            try {
+                Class<?> dataItemFeature = XposedHelpers.findClassIfExists("o000Oo0.OooO00o", lpparam.classLoader);
+                if (dataItemFeature != null) {
+                    XposedBridge.hookAllMethods(dataItemFeature, "o0O0OOoo", trueHook); // Custom theme enabled flag
+                    XposedBridge.hookAllMethods(dataItemFeature, "o000OOoO", cvThemeHook); // Theme name
+                    XposedBridge.hookAllMethods(dataItemFeature, "o00o0Ooo", trueHook); // CV top bar button support
+                }
+            } catch (Throwable ignored) {}
 
-            XposedBridge.log("[" + TAG + "] Leica Profiles & Watermark hooked");
+            // 2. Hook Common & Ruby device feature providers
+            try {
+                Class<?> commonClass = XposedHelpers.findClassIfExists("com.mi.device.Common", lpparam.classLoader);
+                if (commonClass != null) {
+                    XposedBridge.hookAllMethods(commonClass, "o000OO00", cvThemeHook);
+                    XposedBridge.hookAllMethods(commonClass, "o000OOoO", cvThemeHook);
+                    XposedBridge.hookAllMethods(commonClass, "o00oo00O", trueHook);
+                    XposedBridge.hookAllMethods(commonClass, "o00Oo000", trueHook);
+                    XposedBridge.hookAllMethods(commonClass, "o00o0Ooo", trueHook);
+                }
+            } catch (Throwable ignored) {}
+
+            try {
+                Class<?> rubyClass = XposedHelpers.findClassIfExists("com.mi.device.Ruby", lpparam.classLoader);
+                if (rubyClass != null) {
+                    XposedBridge.hookAllMethods(rubyClass, "o000OO00", cvThemeHook);
+                    XposedBridge.hookAllMethods(rubyClass, "o000OOoO", cvThemeHook);
+                    XposedBridge.hookAllMethods(rubyClass, "o00oo00O", trueHook);
+                    XposedBridge.hookAllMethods(rubyClass, "o00Oo000", trueHook);
+                    XposedBridge.hookAllMethods(rubyClass, "o00o0Ooo", trueHook);
+                }
+            } catch (Throwable ignored) {}
+
+            // 3. Force MiThemeCompat.getImpl() to return MiThemeCompatCV
+            try {
+                Class<?> miThemeCompat = XposedHelpers.findClassIfExists("com.android.camera2.compat.theme.MiThemeCompat", lpparam.classLoader);
+                if (miThemeCompat != null) {
+                    XposedBridge.hookAllMethods(miThemeCompat, "getImpl", new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            if (!enableLeica) return;
+                            try {
+                                Class<?> cvClass = XposedHelpers.findClassIfExists("com.android.camera2.compat.theme.custom.cv.MiThemeCompatCV", lpparam.classLoader);
+                                if (cvClass != null) {
+                                    param.setResult(cvClass.newInstance());
+                                }
+                            } catch (Throwable ignored) {}
+                        }
+                    });
+                }
+            } catch (Throwable ignored) {}
+
+            // 4. Ensure ComponentConfigCvType is populated and never reports empty
+            try {
+                Class<?> cvTypeClass = XposedHelpers.findClassIfExists("com.android.camera.data.data.config.ComponentConfigCvType", lpparam.classLoader);
+                if (cvTypeClass != null) {
+                    XposedBridge.hookAllMethods(cvTypeClass, "isEmpty", new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            if (!enableLeica) return;
+                            param.setResult(false);
+                        }
+                    });
+                    XposedBridge.hookAllMethods(cvTypeClass, "reInit", new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            if (!enableLeica) return;
+                            try {
+                                List items = (List) XposedHelpers.getObjectField(param.thisObject, "mItems");
+                                if (items == null || items.isEmpty()) {
+                                    if (items == null) {
+                                        items = new java.util.ArrayList();
+                                        XposedHelpers.setObjectField(param.thisObject, "mItems", items);
+                                    }
+                                    Class<?> cdiClass = XposedHelpers.findClass("com.android.camera.data.data.ComponentDataItem", lpparam.classLoader);
+                                    java.lang.reflect.Constructor<?> ctor = cdiClass.getConstructor(int.class, int.class, int.class, int.class, String.class);
+                                    items.add(ctor.newInstance(0x7f080414, 0x7f080416, 0x7f080414, 0x7f130379, "0")); // Leica Authentic
+                                    items.add(ctor.newInstance(0x7f080413, 0x7f080415, 0x7f080413, 0x7f130378, "1")); // Leica Vibrant
+                                }
+                            } catch (Throwable ignored) {}
+                        }
+                    });
+                }
+            } catch (Throwable ignored) {}
+
+            // 5. Hook CameraCapabilitiesUtil and CameraCapabilities (strictly CvType & Watermark, NO CvLens)
+            Class<?> utilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (utilClass != null) {
+                XposedBridge.hookAllMethods(utilClass, "isSupportCvType", trueHook);
+                XposedBridge.hookAllMethods(utilClass, "isSupportCvWatermark", trueHook);
+            }
+
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                XposedBridge.hookAllMethods(capsClass, "isSupportCvType", trueHook);
+                XposedBridge.hookAllMethods(capsClass, "isSupportCvWatermark", trueHook);
+            }
+
+            // 6. Hook CameraSettings for CV Watermark
+            Class<?> cameraSettings = XposedHelpers.findClassIfExists("com.android.camera.CameraSettings", lpparam.classLoader);
+            if (cameraSettings != null) {
+                XposedBridge.hookAllMethods(cameraSettings, "isSupportCvWatermark", trueHook);
+            }
+
+            // 7. Hook CVWatermark / ICvWatermark
+            try {
+                Class<?> cvWatermark = XposedHelpers.findClassIfExists("com.android.camera2.compat.theme.custom.cv.cvwatermark.CVWatermark", lpparam.classLoader);
+                if (cvWatermark != null) {
+                    XposedBridge.hookAllMethods(cvWatermark, "isSupport", trueHook);
+                }
+            } catch (Throwable ignored) {}
+
+            try {
+                Class<?> icvWatermark = XposedHelpers.findClassIfExists("com.android.camera2.compat.theme.custom.cv.cvwatermark.ICvWatermark", lpparam.classLoader);
+                if (icvWatermark != null) {
+                    XposedBridge.hookAllMethods(icvWatermark, "isSupport", trueHook);
+                }
+            } catch (Throwable ignored) {}
+
+            XposedBridge.log("[" + TAG + "] Leica Profiles, Theme & Watermark hooked successfully");
         } catch (Throwable t) {
             XposedBridge.log("[" + TAG + "] Hook Leica failed: " + t.getMessage());
         }
@@ -672,43 +921,52 @@ public class HookMain implements IXposedHookLoadPackage {
 
             // 8. Sanitize CompatibilityUtils.createCaptureSessionWithSessionConfiguration:
             // If sessionType is >= 32768 (Qualcomm vendor modes 0x8004, 0x8009, 0x8010), rewrite to 0 (SESSION_REGULAR)
+            // CRITICAL: Only sanitize sessionType in Dual Video Mode (204)! Do NOT sanitize in Pro mode (0x8003) or Super Night (0x9005)!
             try {
-                Class<?> compatUtils = XposedHelpers.findClass("com.android.camera.lib.compatibility.util.CompatibilityUtils", lpparam.classLoader);
-                XposedBridge.hookAllMethods(compatUtils, "createCaptureSessionWithSessionConfiguration", new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if (!enableDualVideo) return;
-                        if (param.args.length > 1 && param.args[1] instanceof Integer) {
-                            int sessionType = (Integer) param.args[1];
-                            if (sessionType >= 32768) {
-                                XposedBridge.log("[" + TAG + "] Sanitized vendor sessionType 0x" + Integer.toHexString(sessionType) + " -> 0 (SESSION_REGULAR)");
-                                param.args[1] = 0;
+                Class<?> compatUtils = XposedHelpers.findClassIfExists("com.android.camera.lib.compatibility.util.CompatibilityUtils", lpparam.classLoader);
+                if (compatUtils != null) {
+                    XposedBridge.hookAllMethods(compatUtils, "createCaptureSessionWithSessionConfiguration", new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            if (!enableDualVideo) return;
+                            int currentMode = getCurrentCameraMode(lpparam.classLoader);
+                            if (currentMode != 204) return; // Strictly isolate to Dual Video mode
+                            if (param.args.length > 1 && param.args[1] instanceof Integer) {
+                                int sessionType = (Integer) param.args[1];
+                                if (sessionType >= 32768) {
+                                    XposedBridge.log("[" + TAG + "] Sanitized vendor sessionType 0x" + Integer.toHexString(sessionType) + " -> 0 (SESSION_REGULAR)");
+                                    param.args[1] = 0;
+                                }
                             }
                         }
-                    }
-                });
-                XposedBridge.log("[" + TAG + "] CompatibilityUtils.createCaptureSessionWithSessionConfiguration sessionType sanitizer hooked");
+                    });
+                    XposedBridge.log("[" + TAG + "] CompatibilityUtils.createCaptureSessionWithSessionConfiguration sessionType sanitizer hooked");
+                }
             } catch (Throwable t) {
                 XposedBridge.log("[" + TAG + "] Hook CompatibilityUtils failed: " + t.getMessage());
             }
 
             // 9. Protect Camera 0 and Camera 1 from mutual closure during Dual Video switching
             try {
-                Class<?> closeCallableClass = XposedHelpers.findClass("com.xiaomi.camera.device.callable.CloseCameraCallable", lpparam.classLoader);
-                XposedBridge.hookAllConstructors(closeCallableClass, new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if (!enableDualVideo) return;
-                        if (param.args.length >= 3 && param.args[2] instanceof String[]) {
-                            String[] cur = (String[]) param.args[2];
-                            java.util.HashSet<String> set = new java.util.HashSet<>(java.util.Arrays.asList(cur));
-                            set.add("0");
-                            set.add("1");
-                            param.args[2] = set.toArray(new String[0]);
+                Class<?> closeCallableClass = XposedHelpers.findClassIfExists("com.xiaomi.camera.device.callable.CloseCameraCallable", lpparam.classLoader);
+                if (closeCallableClass != null) {
+                    XposedBridge.hookAllConstructors(closeCallableClass, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            if (!enableDualVideo) return;
+                            int currentMode = getCurrentCameraMode(lpparam.classLoader);
+                            if (currentMode != 204) return; // Strictly isolate to Dual Video mode
+                            if (param.args.length >= 3 && param.args[2] instanceof String[]) {
+                                String[] cur = (String[]) param.args[2];
+                                java.util.HashSet<String> set = new java.util.HashSet<>(java.util.Arrays.asList(cur));
+                                set.add("0");
+                                set.add("1");
+                                param.args[2] = set.toArray(new String[0]);
+                            }
                         }
-                    }
-                });
-                XposedBridge.log("[" + TAG + "] CloseCameraCallable dual camera mutual protection hooked");
+                    });
+                    XposedBridge.log("[" + TAG + "] CloseCameraCallable dual camera mutual protection hooked");
+                }
             } catch (Throwable t) {
                 XposedBridge.log("[" + TAG + "] Hook CloseCameraCallable failed: " + t.getMessage());
             }
@@ -819,18 +1077,20 @@ public class HookMain implements IXposedHookLoadPackage {
                 XposedBridge.log("[" + TAG + "] Hook Checker failed: " + t.getMessage());
             }
 
-            // 14. Hook PIPInfo to enable PIP capability for MediaTek
+            // 14. Hook PIPInfo to enable PIP capability for MediaTek (legacy support)
             try {
-                Class<?> pipInfoClass = XposedHelpers.findClass("com.android.camera.PIPInfo", lpparam.classLoader);
-                try { XposedBridge.hookAllMethods(pipInfoClass, "checkOpenAbility", new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if (!enableDualVideo) return;
-                        param.setResult(0); // 0 = OK, can open
-                    }
-                }); } catch (Throwable ignored) {}
-                try { XposedBridge.hookAllMethods(pipInfoClass, "isSupportPIP", trueHook); } catch (Throwable ignored) {}
-                XposedBridge.log("[" + TAG + "] PIPInfo hooks installed");
+                Class<?> pipInfoClass = XposedHelpers.findClassIfExists("com.android.camera.PIPInfo", lpparam.classLoader);
+                if (pipInfoClass != null) {
+                    try { XposedBridge.hookAllMethods(pipInfoClass, "checkOpenAbility", new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            if (!enableDualVideo) return;
+                            param.setResult(0); // 0 = OK, can open
+                        }
+                    }); } catch (Throwable ignored) {}
+                    try { XposedBridge.hookAllMethods(pipInfoClass, "isSupportPIP", trueHook); } catch (Throwable ignored) {}
+                    XposedBridge.log("[" + TAG + "] PIPInfo hooks installed");
+                }
             } catch (Throwable t) {
                 XposedBridge.log("[" + TAG + "] Hook PIPInfo failed: " + t.getMessage());
             }
@@ -969,9 +1229,9 @@ public class HookMain implements IXposedHookLoadPackage {
                             if (msg.what == 3 && enableDisableThermal) {
                                 // Suppress thermal exit dialog
                                 param.setResult(null);
-                            } else if (msg.what == 10 && enableDualVideo) {
-                                // Suppress "Can't connect to the camera" fatal error dialog
-                                XposedBridge.log("[" + TAG + "] ActivityHandler camera error msg 10 intercepted (arg1=" + msg.arg1 + "), suppressing forced shutdown dialog");
+                            } else if (msg.what == 10 && enableDualVideo && getCurrentCameraMode(lpparam.classLoader) == 204) {
+                                // Suppress "Can't connect to the camera" fatal error dialog strictly in Dual Video mode
+                                XposedBridge.log("[" + TAG + "] ActivityHandler camera error msg 10 intercepted in Dual Video mode (arg1=" + msg.arg1 + "), suppressing forced shutdown dialog");
                                 param.setResult(null);
                             }
                         }
@@ -1077,6 +1337,13 @@ public class HookMain implements IXposedHookLoadPackage {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     if (!enableHighResPhoto) return;
+
+                    // Strictly exclude Portrait mode (171) or non-capture modes!
+                    int currentMode = getCurrentCameraMode(lpparam.classLoader);
+                    if (currentMode == 171 || (currentMode != 163 && currentMode != 167 && currentMode != 175)) {
+                        return;
+                    }
+
                     try {
                         Method mId = param.thisObject.getClass().getMethod("getId");
                         Object idObj = mId.invoke(param.thisObject);
@@ -1096,17 +1363,23 @@ public class HookMain implements IXposedHookLoadPackage {
 
             // Spoof CameraSettings for MiCamera2 to enable backend remosaic vendor tags,
             // while keeping UI oblivious so AI/HDR buttons stay enabled!
-            Class<?> cameraSettings = XposedHelpers.findClass("com.android.camera.CameraSettings", lpparam.classLoader);            XC_MethodHook spoofBackendHook = new XC_MethodHook() {
+            Class<?> cameraSettings = XposedHelpers.findClass("com.android.camera.CameraSettings", lpparam.classLoader);
+            XC_MethodHook spoofBackendHook = new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     if (!enableHighResPhoto) return;
-                    
+
+                    int currentMode = getCurrentCameraMode(lpparam.classLoader);
+                    if (currentMode == 171 || (currentMode != 163 && currentMode != 167 && currentMode != 175)) {
+                        return;
+                    }
+
                     boolean originalResult = false;
                     if (param.getResult() != null) {
                         originalResult = (boolean) param.getResult();
                     }
                     if (originalResult) return; // Already true, do nothing
-                    
+
                     // Do not spoof if it's the front camera or non-main sensor!
                     try {
                         Class<?> csClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSettings", lpparam.classLoader);
@@ -1128,7 +1401,7 @@ public class HookMain implements IXposedHookLoadPackage {
                             } catch (Throwable ignored) {}
                         }
                     } catch (Throwable ignored) {}
-                    
+
                     StackTraceElement[] stack = Thread.currentThread().getStackTrace();
                     for (StackTraceElement element : stack) {
                         String className = element.getClassName();
@@ -1149,8 +1422,6 @@ public class HookMain implements IXposedHookLoadPackage {
             XC_MethodHook sizeListHook = new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    if (!enableHighResPhoto) return;
-
                     // Strictly check that this is the main rear camera (Camera 0)
                     try {
                         Object caps = param.thisObject;
@@ -1174,51 +1445,64 @@ public class HookMain implements IXposedHookLoadPackage {
 
                     if (param.args.length >= 1 && param.args[0] instanceof Integer) {
                         int format = (Integer) param.args[0];
-                        if (format == 256) { // ImageFormat.JPEG
-                            Object result = param.getResult();
-                            if (result instanceof java.util.List) {
-                                java.util.List srcList = (java.util.List) result;
-                                boolean has50mp = false;
-                                for (Object obj : srcList) {
+                        int assignedMode = (param.args.length >= 2 && param.args[1] instanceof Integer) 
+                                ? (Integer) param.args[1] 
+                                : getCurrentCameraMode(lpparam.classLoader);
+
+                        // Strictly exclude Portrait mode (171) and any video/unsupported modes
+                        if (assignedMode == 171 || (assignedMode != 163 && assignedMode != 167 && assignedMode != 175)) {
+                            return;
+                        }
+
+                        boolean isJpeg = (format == 256); // ImageFormat.JPEG
+
+                        // 50MP injection is strictly for JPEG capture via MediaTek ISP remosaic
+                        // Hardware HAL for MT6877 (Dimensity 1080) does not support 50MP RAW stream
+                        if (!isJpeg || !enableHighResPhoto) {
+                            return;
+                        }
+
+                        Object result = param.getResult();
+                        if (result instanceof java.util.List) {
+                            java.util.List srcList = (java.util.List) result;
+                            boolean has50mp = false;
+                            for (Object obj : srcList) {
+                                try {
+                                    int w, h;
                                     try {
-                                        int w, h;
-                                        try {
-                                            w = XposedHelpers.getIntField(obj, "width");
-                                            h = XposedHelpers.getIntField(obj, "height");
-                                        } catch (Throwable e) {
-                                            w = (int) XposedHelpers.callMethod(obj, "getWidth");
-                                            h = (int) XposedHelpers.callMethod(obj, "getHeight");
-                                        }
-                                        if ((w == 8192 && h == 6144) || (w == 6144 && h == 8192)) {
-                                            has50mp = true;
-                                            break;
-                                        }
-                                    } catch (Throwable ignored) {}
-                                }
-                                if (!has50mp) {
-                                    try {
-                                        Class<?> cameraSizeClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSize", lpparam.classLoader);
-                                        if (cameraSizeClass != null) {
-                                            java.lang.reflect.Constructor<?> ctor = cameraSizeClass.getConstructor(int.class, int.class);
-                                            // Build a new mutable list to avoid UnsupportedOperationException on immutable lists
-                                            java.util.List<Object> newList = new java.util.ArrayList<>();
-                                            // 4:3 (True 50MP JN1 Bayer resolution)
-                                            newList.add(ctor.newInstance(8192, 6144));
-                                            newList.add(ctor.newInstance(6144, 8192));
-                                            // 16:9
-                                            newList.add(ctor.newInstance(8192, 4608));
-                                            newList.add(ctor.newInstance(4608, 8192));
-                                            // 1:1
-                                            newList.add(ctor.newInstance(6144, 6144));
-                                            // 20:9
-                                            newList.add(ctor.newInstance(8192, 3692));
-                                            newList.add(ctor.newInstance(3692, 8192));
-                                            newList.addAll(srcList);
-                                            param.setResult(newList);
-                                        }
-                                    } catch (Throwable t) {
-                                        XposedBridge.log("[" + TAG + "] Error injecting CameraSize: " + t.getMessage());
+                                        w = XposedHelpers.getIntField(obj, "width");
+                                        h = XposedHelpers.getIntField(obj, "height");
+                                    } catch (Throwable e) {
+                                        w = (int) XposedHelpers.callMethod(obj, "getWidth");
+                                        h = (int) XposedHelpers.callMethod(obj, "getHeight");
                                     }
+                                    if ((w == 8192 && h == 6144) || (w == 6144 && h == 8192)) {
+                                        has50mp = true;
+                                        break;
+                                    }
+                                } catch (Throwable ignored) {}
+                            }
+                            if (!has50mp) {
+                                try {
+                                    Class<?> cameraSizeClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSize", lpparam.classLoader);
+                                    if (cameraSizeClass != null) {
+                                        java.lang.reflect.Constructor<?> ctor = cameraSizeClass.getConstructor(int.class, int.class);
+                                        // Build a new mutable list to avoid UnsupportedOperationException on immutable lists
+                                        java.util.List<Object> newList = new java.util.ArrayList<>();
+                                        // 4:3 (True 50MP Bayer resolution)
+                                        newList.add(ctor.newInstance(8192, 6144));
+                                        newList.add(ctor.newInstance(6144, 8192));
+                                        // 16:9, 1:1, 20:9 crops only for JPEG
+                                        newList.add(ctor.newInstance(8192, 4608));
+                                        newList.add(ctor.newInstance(4608, 8192));
+                                        newList.add(ctor.newInstance(6144, 6144));
+                                        newList.add(ctor.newInstance(8192, 3692));
+                                        newList.add(ctor.newInstance(3692, 8192));
+                                        newList.addAll(srcList);
+                                        param.setResult(newList);
+                                    }
+                                } catch (Throwable t) {
+                                    XposedBridge.log("[" + TAG + "] Error injecting CameraSize: " + t.getMessage());
                                 }
                             }
                         }
@@ -1233,6 +1517,282 @@ public class HookMain implements IXposedHookLoadPackage {
             XposedBridge.log("[" + TAG + "] 50MP Normal Photo successfully hooked");
         } catch (Throwable t) {
             XposedBridge.log("[" + TAG + "] Hook 50MP Normal Photo failed: " + t.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 9. Pro Video LOG Profile Hook
+    // ==========================================
+    private void hookVideoLog(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook logHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (!enableLogFormat) return;
+                param.setResult(true);
+            }
+        };
+
+        try {
+            Class<?> utilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (utilClass != null) {
+                try { XposedBridge.hookAllMethods(utilClass, "isSupportedVideoLogFormat", logHook); } catch (Throwable ignored) {}
+            }
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                try { XposedBridge.hookAllMethods(capsClass, "isSupportedVideoLogFormat", logHook); } catch (Throwable ignored) {}
+            }
+            XposedBridge.log("[" + TAG + "] Pro Video LOG profile hooks installed");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook VideoLog failed: " + t.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 10. Cinematic MiMovie (2.39:1 Widescreen) Hook
+    // ==========================================
+    private void hookMiMovie(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook movieHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (!enableMiMovie) return;
+                param.setResult(true);
+            }
+        };
+
+        try {
+            Class<?> utilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (utilClass != null) {
+                try { XposedBridge.hookAllMethods(utilClass, "isSupportedVideoMiMovie", movieHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(utilClass, "isSupportedCinematicVideo", movieHook); } catch (Throwable ignored) {}
+            }
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                try { XposedBridge.hookAllMethods(capsClass, "isSupportedVideoMiMovie", movieHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(capsClass, "isSupportedCinematicVideo", movieHook); } catch (Throwable ignored) {}
+            }
+            XposedBridge.log("[" + TAG + "] Cinematic MiMovie (2.39:1) hooks installed");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook MiMovie failed: " + t.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 11. Video Teleprompter Hook
+    // ==========================================
+    private void hookVideoPrompter(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook prompterHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (!enablePrompter) return;
+                param.setResult(true);
+            }
+        };
+
+        try {
+            Class<?> dataItemFeature = XposedHelpers.findClassIfExists("o000Oo0.OooO00o", lpparam.classLoader);
+            if (dataItemFeature != null) {
+                try { XposedBridge.hookAllMethods(dataItemFeature, "o0O0o0o", prompterHook); } catch (Throwable ignored) {}
+            }
+            Class<?> commonClass = XposedHelpers.findClassIfExists("com.mi.device.Common", lpparam.classLoader);
+            if (commonClass != null) {
+                try { XposedBridge.hookAllMethods(commonClass, "o0O0o0o", prompterHook); } catch (Throwable ignored) {}
+            }
+            Class<?> rubyClass = XposedHelpers.findClassIfExists("com.mi.device.Ruby", lpparam.classLoader);
+            if (rubyClass != null) {
+                try { XposedBridge.hookAllMethods(rubyClass, "o0O0o0o", prompterHook); } catch (Throwable ignored) {}
+            }
+            Class<?> videoTrackInfo = XposedHelpers.findClassIfExists("com.android.camera.module.video.VideoTrackInfo", lpparam.classLoader);
+            if (videoTrackInfo != null) {
+                try { XposedBridge.hookAllMethods(videoTrackInfo, "videoPrompterSupported", prompterHook); } catch (Throwable ignored) {}
+            }
+            XposedBridge.log("[" + TAG + "] Video Teleprompter hooks installed");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook VideoPrompter failed: " + t.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 12. Focus Peaking & Zebra Exposure Stripes Hook
+    // ==========================================
+    private void hookFocusPeakingZebra(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook peakHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (!enableFocusPeak) return;
+                param.setResult(true);
+            }
+        };
+
+        try {
+            Class<?> dataItemFeature = XposedHelpers.findClassIfExists("o000Oo0.OooO00o", lpparam.classLoader);
+            if (dataItemFeature != null) {
+                try { XposedBridge.hookAllMethods(dataItemFeature, "o0O0ooOO", peakHook); } catch (Throwable ignored) {}
+            }
+            Class<?> commonClass = XposedHelpers.findClassIfExists("com.mi.device.Common", lpparam.classLoader);
+            if (commonClass != null) {
+                try { XposedBridge.hookAllMethods(commonClass, "o0O0ooOO", peakHook); } catch (Throwable ignored) {}
+            }
+            Class<?> rubyClass = XposedHelpers.findClassIfExists("com.mi.device.Ruby", lpparam.classLoader);
+            if (rubyClass != null) {
+                try { XposedBridge.hookAllMethods(rubyClass, "o0O0ooOO", peakHook); } catch (Throwable ignored) {}
+            }
+            Class<?> utilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (utilClass != null) {
+                try { XposedBridge.hookAllMethods(utilClass, "isSupportDepthFocusForMTK", peakHook); } catch (Throwable ignored) {}
+            }
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                try { XposedBridge.hookAllMethods(capsClass, "isSupportDepthFocusForMTK", peakHook); } catch (Throwable ignored) {}
+            }
+            Class<?> csClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSettings", lpparam.classLoader);
+            if (csClass != null) {
+                try { XposedBridge.hookAllMethods(csClass, "isTeleX", peakHook); } catch (Throwable ignored) {}
+            }
+            XposedBridge.log("[" + TAG + "] Focus Peaking & Zebra Stripes hooks installed");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook FocusPeakingZebra failed: " + t.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 13. Motion Tracking Focus (AI Eye & Subject Auto-Tracking)
+    // ==========================================
+    private void hookTrackFocus(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook focusHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (!enableTrackFocus) return;
+                param.setResult(true);
+            }
+        };
+
+        try {
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                try { XposedBridge.hookAllMethods(capsClass, "isSupportTrackEye", focusHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(capsClass, "isSupportTrackFocus", focusHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(capsClass, "isTrackFocusDefined", focusHook); } catch (Throwable ignored) {}
+            }
+            Class<?> utilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (utilClass != null) {
+                try { XposedBridge.hookAllMethods(utilClass, "isSupportTrackEye", focusHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(utilClass, "isSupportTrackFocus", focusHook); } catch (Throwable ignored) {}
+            }
+            Class<?> csClass = XposedHelpers.findClassIfExists("com.android.camera.CameraSettings", lpparam.classLoader);
+            if (csClass != null) {
+                try { XposedBridge.hookAllMethods(csClass, "isSupportTrackEye", focusHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(csClass, "isSupportTrackFocus", focusHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(csClass, "isTrackFocusOn", focusHook); } catch (Throwable ignored) {}
+            }
+            XposedBridge.log("[" + TAG + "] Motion Tracking Focus hooks installed");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook TrackFocus failed: " + t.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 14. Document Scanner Mode (Mode 186) Hook
+    // ==========================================
+    private void hookDocumentMode(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook docHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (!enableDocMode) return;
+                param.setResult(true);
+            }
+        };
+
+        try {
+            Class<?> docEntry = XposedHelpers.findClassIfExists("com.android.camera.features.mode.doc.DocModuleEntry", lpparam.classLoader);
+            if (docEntry != null) {
+                try { XposedBridge.hookAllMethods(docEntry, "support", docHook); } catch (Throwable ignored) {}
+            }
+            Class<?> dataItemFeature = XposedHelpers.findClassIfExists("o000Oo0.OooO00o", lpparam.classLoader);
+            if (dataItemFeature != null) {
+                try { XposedBridge.hookAllMethods(dataItemFeature, "o00o0oO0", docHook); } catch (Throwable ignored) {}
+            }
+            Class<?> commonClass = XposedHelpers.findClassIfExists("com.mi.device.Common", lpparam.classLoader);
+            if (commonClass != null) {
+                try { XposedBridge.hookAllMethods(commonClass, "o00o0oO0", docHook); } catch (Throwable ignored) {}
+            }
+            Class<?> rubyClass = XposedHelpers.findClassIfExists("com.mi.device.Ruby", lpparam.classLoader);
+            if (rubyClass != null) {
+                try { XposedBridge.hookAllMethods(rubyClass, "o00o0oO0", docHook); } catch (Throwable ignored) {}
+            }
+            Class<?> globalClass = XposedHelpers.findClassIfExists("com.android.camera.data.data.global.DataItemGlobal", lpparam.classLoader);
+            if (globalClass != null) {
+                XposedBridge.hookAllMethods(globalClass, "getSortModes", new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        if (!enableDocMode) return;
+                        Object res = param.getResult();
+                        if (res instanceof int[]) {
+                            int[] modes = (int[]) res;
+                            boolean hasDoc = false;
+                            for (int m : modes) {
+                                if (m == 186) {
+                                    hasDoc = true;
+                                    break;
+                                }
+                            }
+                            if (!hasDoc) {
+                                int[] newModes = new int[modes.length + 1];
+                                System.arraycopy(modes, 0, newModes, 0, modes.length);
+                                newModes[modes.length] = 186; // Mode 186 = Document Mode
+                                param.setResult(newModes);
+                            }
+                        }
+                    }
+                });
+            }
+            XposedBridge.log("[" + TAG + "] Document Scanner Mode (Mode 186) hooks installed");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook DocumentMode failed: " + t.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 15. Directional Audio Zoom & Bluetooth Headset Mic Hook
+    // ==========================================
+    private void hookAudioMic(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook audioHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (!enableAudioMic) return;
+                param.setResult(true);
+            }
+        };
+
+        try {
+            Class<?> dataItemFeature = XposedHelpers.findClassIfExists("o000Oo0.OooO00o", lpparam.classLoader);
+            if (dataItemFeature != null) {
+                try { XposedBridge.hookAllMethods(dataItemFeature, "o00o0000", audioHook); } catch (Throwable ignored) {}
+            }
+            Class<?> commonClass = XposedHelpers.findClassIfExists("com.mi.device.Common", lpparam.classLoader);
+            if (commonClass != null) {
+                try { XposedBridge.hookAllMethods(commonClass, "o00o0000", audioHook); } catch (Throwable ignored) {}
+            }
+            Class<?> rubyClass = XposedHelpers.findClassIfExists("com.mi.device.Ruby", lpparam.classLoader);
+            if (rubyClass != null) {
+                try { XposedBridge.hookAllMethods(rubyClass, "o00o0000", audioHook); } catch (Throwable ignored) {}
+            }
+            Class<?> utilClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilitiesUtil", lpparam.classLoader);
+            if (utilClass != null) {
+                try { XposedBridge.hookAllMethods(utilClass, "isSupport3MicEnable", audioHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(utilClass, "isSupportBluetoothHeadsetMic", audioHook); } catch (Throwable ignored) {}
+            }
+            Class<?> capsClass = XposedHelpers.findClassIfExists("com.android.camera2.CameraCapabilities", lpparam.classLoader);
+            if (capsClass != null) {
+                try { XposedBridge.hookAllMethods(capsClass, "isSupport3MicEnable", audioHook); } catch (Throwable ignored) {}
+                try { XposedBridge.hookAllMethods(capsClass, "isSupportBluetoothHeadsetMic", audioHook); } catch (Throwable ignored) {}
+            }
+            Class<?> audioManagerClass = XposedHelpers.findClassIfExists("com.android.camera.aiaudio.AiAudioParameterManager", lpparam.classLoader);
+            if (audioManagerClass != null) {
+                try { XposedBridge.hookAllMethods(audioManagerClass, "isSupportAiAudioNew", audioHook); } catch (Throwable ignored) {}
+            }
+            XposedBridge.log("[" + TAG + "] Directional Audio Zoom & Bluetooth Headset Mic hooks installed");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook AudioMic failed: " + t.getMessage());
         }
     }
     // ==========================================
@@ -1316,7 +1876,7 @@ public class HookMain implements IXposedHookLoadPackage {
 
         // D. CamcorderProfile 4K 60FPS
         try {
-            Class<?> profileClass = XposedHelpers.findClassIfExists("android.media.CamcorderProfile", lpparam.classLoader);
+            final Class<?> profileClass = XposedHelpers.findClassIfExists("android.media.CamcorderProfile", lpparam.classLoader);
             if (profileClass != null) {
                 XposedBridge.hookAllMethods(profileClass, "hasProfile", new XC_MethodHook() {
                     @Override
@@ -1327,10 +1887,71 @@ public class HookMain implements IXposedHookLoadPackage {
                         }
                     }
                 });
+                XposedBridge.hookAllMethods(profileClass, "get", new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        if (param.getThrowable() != null && enable4k60) {
+                            try {
+                                Method mGet = profileClass.getMethod("get", int.class, int.class);
+                                Object fallback = mGet.invoke(null, param.args[0], 1 /* QUALITY_HIGH */);
+                                param.setResult(fallback);
+                            } catch (Throwable ignored) {}
+                        }
+                    }
+                });
                 XposedBridge.log("[" + TAG + "] CamcorderProfile 4K60 hook installed");
             }
         } catch (Throwable t) {
             XposedBridge.log("[" + TAG + "] Framework CamcorderProfile hook failed: " + t.getMessage());
+        }
+
+        // E. StreamConfigurationMap 4K output size injection (enables 4K for front camera on AOSP/HAL)
+        try {
+            Class<?> mapClass = XposedHelpers.findClassIfExists("android.hardware.camera2.params.StreamConfigurationMap", lpparam.classLoader);
+            if (mapClass != null) {
+                XposedBridge.hookAllMethods(mapClass, "getOutputSizes", new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        if (!enable4k60) return;
+                        Object res = param.getResult();
+                        if (res instanceof android.util.Size[]) {
+                            android.util.Size[] sizes = (android.util.Size[]) res;
+                            boolean has4k = false;
+                            for (android.util.Size s : sizes) {
+                                if (s.getWidth() == 3840 && s.getHeight() == 2160) {
+                                    has4k = true;
+                                    break;
+                                }
+                            }
+                            if (!has4k && param.args.length > 0) {
+                                Object arg = param.args[0];
+                                boolean shouldInject = false;
+                                if (arg instanceof Class) {
+                                    Class<?> c = (Class<?>) arg;
+                                    String cName = c.getName();
+                                    if (cName.contains("MediaRecorder") || cName.contains("SurfaceTexture") || cName.contains("ImageReader")) {
+                                        shouldInject = true;
+                                    }
+                                } else if (arg instanceof Integer) {
+                                    int fmt = (Integer) arg;
+                                    if (fmt == 34 /* PRIVATE */ || fmt == 35 /* YUV_420_888 */ || fmt == 256 /* JPEG */) {
+                                        shouldInject = true;
+                                    }
+                                }
+                                if (shouldInject) {
+                                    android.util.Size[] newSizes = new android.util.Size[sizes.length + 1];
+                                    newSizes[0] = new android.util.Size(3840, 2160);
+                                    System.arraycopy(sizes, 0, newSizes, 1, sizes.length);
+                                    param.setResult(newSizes);
+                                }
+                            }
+                        }
+                    }
+                });
+                XposedBridge.log("[" + TAG + "] StreamConfigurationMap 4K injection hooked");
+            }
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] Hook StreamConfigurationMap failed: " + t.getMessage());
         }
 
         XposedBridge.log("[" + TAG + "] Framework-level universal hooks done");

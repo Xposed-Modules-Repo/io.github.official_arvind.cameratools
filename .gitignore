@@ -48,3 +48,6 @@ xposed-rewrite/
 Test*
 *screenshot*
 xposed-rewrite
+
+*.py
+scratch/

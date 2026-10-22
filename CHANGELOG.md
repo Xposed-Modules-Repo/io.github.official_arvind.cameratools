@@ -4,30 +4,49 @@ All notable changes to the **CameraTools** project are documented in this file.
 
 ---
 
-## [v1.3.1] - 2026-10-21 (Pre-Release)
+## [v1.3.0] - 2026-10-22 (Official Release)
 
-### 🚀 AOSP ROM & Vector / LSPosed Preference Loading Fix
-* **LSPosed API 93 Modern XSharedPreferences IPC**:
-  * Set `xposedminversion="93"` and `xposedsharedprefs="true"` in `AndroidManifest.xml`.
-  * Module UI writes preferences using `Context.MODE_WORLD_READABLE`, safely redirected by LSPosed API 93 into a shared cross-process directory (`/data/misc/.../prefs/io.github.official_arvind.cameratools`).
-  * `HookMain` instantiates `new XSharedPreferences("io.github.official_arvind.cameratools", PrefProvider.PREFS_NAME)`, bypassing Android 14 filesystem DAC/MAC sandbox restrictions without touching raw files.
-* **Automated SELinux Root Sync Bridge**:
-  * Added `syncPrefsWithRoot()` in `MainActivity`: dynamically discovers the target camera application UID (`stat -c %u`), creates the target directories, copies the XML config, sets `chmod 666`, applies `chown`, and runs `restorecon -F` to ensure full SELinux compliance.
-  * Ensures 100% reliable preference delivery on rooted AOSP setups (`exists=true canRead=true`).
-* **Android 11+ Package Visibility Bypass**:
-  * Added `grantCameraUriPermissions()` in `MainActivity` to explicitly grant `FLAG_GRANT_READ_URI_PERMISSION` across all 13 supported camera packages (`com.android.camera`, `com.miui.camera`, GCam packages, Aperture, GrapheneOS Camera, OpenCamera).
-* **Multi-Tier Fallback Provider**:
-  * Completely revamped `PrefProvider`'s `loadAllBooleans()` to traverse Device-Protected storage (DE), Credential-Protected storage (CE), and fallback XML directly, preventing default `false` returns.
-* **Live Lifecycle Preference Reloading**:
-  * Added hooks on `Application.onCreate` and `Activity.onResume` in `HookMain` to reload settings immediately when switching between CameraTools and the camera application.
-* **Clean Exception Reporting**:
-  * Removed swallowed exceptions in `HookMain` ContentProvider queries; all sync errors and hook events are now cleanly logged to logcat via `XposedBridge.log(...)`.
+### 🐛 Critical Bug Fixes & Independent Audit Verification
+* **Portrait Mode Green Output Fix**:
+  * Mode isolation in `alwaysUseRemosaicSize`, `spoofBackendHook` (`isUltraPixelOn`), and `sizeListHook`.
+  * Mode 171 (Portrait Mode) is strictly excluded from 50MP hardware remosaicing, ensuring ArcSoft dual-camera bokeh engine receives clean 12.5MP ($4096 \times 3072$) frames without chroma corruption (eliminating the neon green tint).
+* **Pro RAW (DNG) Native Bayer Capture**:
+  * Clarified and verified that the MediaTek MT6877 Dimensity 1080 HAL exposes a native uncompressed 12.5MP ($4096 \times 3072$) Bayer RAW stream (`RAW_SENSOR` format 32).
+  * Prevented camera daemon crash on launch by isolating 50MP stream injection strictly to JPEG hardware remosaic (`format 256`), ensuring rock-solid stability when shooting RAW.
+* **Leica Authentic/Vibrant Profiles & Watermark Fix**:
+  * Resolved missing Leica button in top toolbar by hooking `o0O0OOoo` and `o000OOoO` on `DataItemFeature` and properly initializing `MiThemeCompatCV`.
+  * Hooked `ComponentConfigCvType` ensuring Leica Authentic and Leica Vibrant options are always present in the top bar and settings.
+* **Zoom Slider Glitch Resolution**:
+  * Fixed method collision on `DataItemFeature` where `o000OO00(int mode)` (`float[]` optical zoom ratios) was incorrectly receiving a String return value, causing `0 0 0 0` and integer overflow buttons in the preview slider.
+  * Added strict reflection return-type safety guards on all method hooks, restoring clean, centered `0.6X`, `1.0X`, and `2.0X` optical zoom buttons.
+* **Modern Flagship App Logo**:
+  * Redesigned application launcher and adaptive icon with precision-engineered mechanical aperture blades, multi-coated optic glass reflections, cyan neon accent ring, and signature Leica ruby badge.
 
----
+### 🌟 New Features & Hardware Unlocks (15 Total)
+* **Front Camera 4K Video (30FPS & 60FPS)**:
+  * Injected 4K 30FPS (quality 8) and 4K 60FPS (quality 2108) for the 16MP front selfie camera in `init4K` and `getSupportedVideoQualityList`.
+  * Injected $3840 \times 2160$ output sizes into `StreamConfigurationMap.getOutputSizes` for `MediaRecorder` and `SurfaceTexture`.
+* **Pro Video LOG Profile**:
+  * Unlocked flat LOG color profile in Pro Video mode (`isSupportedVideoLogFormat`) for maximum dynamic range color grading.
+* **Cinematic MiMovie Mode (2.39:1)**:
+  * Unlocked 2.39:1 anamorphic movie aspect ratio and cinematic letterbox guidelines (`isSupportedVideoMiMovie` & `isSupportedCinematicVideo`).
+* **Video Teleprompter**:
+  * Unlocked native on-screen floating teleprompter script tool (`o0O0o0o` / `videoPrompterSupported`).
+* **Focus Peaking & Zebra Exposure Assist**:
+  * Unlocked real-time colored focus peaking outlines on in-focus edges and zebra stripes on overexposed highlights in Pro mode (`o0O0ooOO` / `isSupportDepthFocusForMTK` / `isTeleX`).
+* **AI Motion Tracking Focus**:
+  * Unlocked continuous AI tracking focus for human eyes, faces, and pets (`isSupportTrackEye`, `isSupportTrackFocus`, `isTrackFocusDefined`) across photo and video modes.
+* **Document Scanner Mode**:
+  * Unlocked native document and ID scanner mode with auto-perspective deskew and contrast enhancement (`DocModuleEntry.support`, `o00o0oO0`, Mode 186 injected into `DataItemGlobal.getSortModes()`).
+* **Directional Audio Zoom & Bluetooth Headset Mic**:
+  * Unlocked Bluetooth earbud microphone recording (`isSupportBluetoothHeadsetMic`) and 3-mic directional audio zoom (`isSupport3MicEnable`, `isSupportAiAudioNew`, `o00o0000`).
 
-## [v1.3.0] - 2026-10-21 (Pre-Release)
+### 📱 Polished User Interface Redesign
+* Completely updated UI with 15 user-friendly cards featuring simple, clear, non-technical descriptions for everyday users.
+* Added individual toggles for all 15 capabilities, dynamic status badges, and single-tap "Enable All / Disable All" and "Restart Camera" buttons.
+* Seamless background preference synchronization across LSPosed API 93, ContentProvider IPC, and Root sync.
 
-### 🌟 Universal AOSP ROM & Multi-Camera Compatibility
+### 🌐 Universal AOSP ROM & Multi-Camera Compatibility
 * **Universal Android Framework (`android.hardware.camera2` & `android.media`) Hooks**:
   * Added `hookFrameworkLevel`: hooks `CameraCharacteristics.get` for exposure range and 4K60 FPS ranges.
   * Added `PowerManager.getCurrentThermalStatus` hook returning `THERMAL_STATUS_NONE` (0) across all camera apps.

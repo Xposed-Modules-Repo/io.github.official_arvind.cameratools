@@ -1,31 +1,52 @@
 <resources>
     <string name="app_name">CameraTools</string>
     <string name="app_subtitle">Xiaomi Redmi Note 12 Pro 5G (ruby)</string>
-    <string name="xposed_description">Camera and ISP Tweaks for Redmi Note 12 Pro 5G: 4K 60FPS, 150Mbps Bitrate, 50MP RAW, 50MP Normal Photo, Leica Profiles, Dual Video, Long Exposure, Thermal Bypass.</string>
+    <string name="xposed_description">Camera and ISP Tweaks for Redmi Note 12 Pro 5G: 4K 60FPS, 150Mbps Bitrate, Pro RAW (DNG), 50MP Normal Photo, Leica Profiles, Dual Video, Long Exposure, Thermal Bypass.</string>
     
-    <string name="title_4k60">4K 60FPS Video Recording</string>
-    <string name="desc_4k60">Unlocks smooth 4K video recording at 60 frames per second.</string>
+    <string name="title_4k60">4K 60FPS Video (Front &amp; Rear)</string>
+    <string name="desc_4k60">Unlocks crystal clear 4K video recording up to 60 frames per second on both the main and selfie cameras.</string>
 
     <string name="title_bitrate">Ultra High Video Quality</string>
-    <string name="desc_bitrate">Improves video recording quality for much clearer videos.</string>
+    <string name="desc_bitrate">Increases video recording bitrate to 150 Mbps for sharper, blur-free details.</string>
 
-    <string name="title_raw">50MP RAW Photos</string>
-    <string name="desc_raw">Enables uncompressed 50-megapixel RAW photos in Pro Mode.</string>
+    <string name="title_raw">Pro RAW (DNG) Capture</string>
+    <string name="desc_raw">Unlocks uncompressed 12.5MP native Bayer RAW (DNG) photos in Pro Mode without sharpening or noise reduction.</string>
 
-    <string name="title_leica">Leica Camera Modes</string>
-    <string name="desc_leica">Adds Leica Authentic and Leica Vibrant camera modes and Leica watermark.</string>
+    <string name="title_leica">Leica Color Profiles &amp; Watermarks</string>
+    <string name="desc_leica">Adds Leica Authentic and Leica Vibrant color profiles and the original Leica watermark.</string>
 
     <string name="title_dual_video">Dual-Camera Video</string>
-    <string name="desc_dual_video">Record video using the front and rear cameras at the same time.</string>
+    <string name="desc_dual_video">Record video using the front selfie and rear main cameras simultaneously in split-screen.</string>
 
-    <string name="title_shutter">Pro Mode Long Exposure</string>
-    <string name="desc_shutter">Allows taking very long exposure photos (up to 60 seconds) in Pro Mode.</string>
+    <string name="title_shutter">Pro Mode Long Exposure (60s)</string>
+    <string name="desc_shutter">Extends manual shutter exposure up to 60 seconds for night sky and light painting.</string>
 
     <string name="title_thermal">Disable Overheating Limits</string>
-    <string name="desc_thermal">Stops the camera from closing automatically when the phone gets warm.</string>
+    <string name="desc_thermal">Prevents the camera from stopping video or closing automatically when warm.</string>
 
     <string name="title_highres_photo">50MP Normal Photo</string>
-    <string name="desc_highres_photo">Makes the standard Photo mode take full 50-megapixel pictures.</string>
+    <string name="desc_highres_photo">Captures full 50-megapixel pictures in standard Photo mode without green tint.</string>
+
+    <string name="title_log_format">Pro Video LOG Profile</string>
+    <string name="desc_log_format">Records flat, natural video in Pro mode with extra shadow and highlight detail for color grading.</string>
+
+    <string name="title_mimovie">Cinematic Movie Mode (2.39:1)</string>
+    <string name="desc_mimovie">Shoots videos in wide theatrical cinema aspect ratio with cinematic black bars.</string>
+
+    <string name="title_prompter">Video Teleprompter</string>
+    <string name="desc_prompter">Shows your script right on screen while recording video so you can speak naturally.</string>
+
+    <string name="title_focus_peak">Focus Assist &amp; Exposure Zebra</string>
+    <string name="desc_focus_peak">Outlines what is in focus with bright highlights and shows zebra stripes over very bright areas.</string>
+
+    <string name="title_track_focus">AI Motion Tracking Focus</string>
+    <string name="desc_track_focus">Automatically tracks and locks continuous focus on eyes, faces, and moving subjects in photos and videos.</string>
+
+    <string name="title_doc_mode">Document Scanner Mode</string>
+    <string name="desc_doc_mode">Adds a camera mode that automatically straightens documents, papers, and IDs to look like clean scans.</string>
+
+    <string name="title_audio_mic">Directional Audio &amp; Bluetooth Mic</string>
+    <string name="desc_audio_mic">Lets you use Bluetooth earbuds as your recording microphone and zooms audio towards what you zoom into.</string>
 
     <string name="btn_restart_camera">Restart Camera</string>
     <string name="btn_enable_all">Enable All</string>

@@ -28,6 +28,14 @@ public class PrefProvider extends ContentProvider {
     public static final String KEY_SHUTTER = "pref_shutter";
     public static final String KEY_DISABLE_THERMAL = "pref_disable_thermal";
     public static final String KEY_HIGH_RES_PHOTO = "pref_high_res_photo";
+    public static final String KEY_LOG_FORMAT = "pref_log_format";
+    public static final String KEY_MIMOVIE = "pref_mimovie";
+    public static final String KEY_PROMPTER = "pref_prompter";
+    public static final String KEY_FOCUS_PEAK = "pref_focus_peak";
+    public static final String KEY_LEICA_LENSES = "pref_leica_lenses";
+    public static final String KEY_TRACK_FOCUS = "pref_track_focus";
+    public static final String KEY_DOC_MODE = "pref_doc_mode";
+    public static final String KEY_AUDIO_MIC = "pref_audio_mic";
 
     @Override
     public boolean onCreate() {
@@ -115,6 +123,14 @@ public class PrefProvider extends ContentProvider {
             b.putBoolean(KEY_SHUTTER, map.containsKey(KEY_SHUTTER) ? map.get(KEY_SHUTTER) : false);
             b.putBoolean(KEY_DISABLE_THERMAL, map.containsKey(KEY_DISABLE_THERMAL) ? map.get(KEY_DISABLE_THERMAL) : false);
             b.putBoolean(KEY_HIGH_RES_PHOTO, map.containsKey(KEY_HIGH_RES_PHOTO) ? map.get(KEY_HIGH_RES_PHOTO) : false);
+            b.putBoolean(KEY_LOG_FORMAT, map.containsKey(KEY_LOG_FORMAT) ? map.get(KEY_LOG_FORMAT) : false);
+            b.putBoolean(KEY_MIMOVIE, map.containsKey(KEY_MIMOVIE) ? map.get(KEY_MIMOVIE) : false);
+            b.putBoolean(KEY_PROMPTER, map.containsKey(KEY_PROMPTER) ? map.get(KEY_PROMPTER) : false);
+            b.putBoolean(KEY_FOCUS_PEAK, map.containsKey(KEY_FOCUS_PEAK) ? map.get(KEY_FOCUS_PEAK) : false);
+            b.putBoolean(KEY_LEICA_LENSES, map.containsKey(KEY_LEICA_LENSES) ? map.get(KEY_LEICA_LENSES) : false);
+            b.putBoolean(KEY_TRACK_FOCUS, map.containsKey(KEY_TRACK_FOCUS) ? map.get(KEY_TRACK_FOCUS) : (map.containsKey(KEY_LEICA_LENSES) ? map.get(KEY_LEICA_LENSES) : false));
+            b.putBoolean(KEY_DOC_MODE, map.containsKey(KEY_DOC_MODE) ? map.get(KEY_DOC_MODE) : false);
+            b.putBoolean(KEY_AUDIO_MIC, map.containsKey(KEY_AUDIO_MIC) ? map.get(KEY_AUDIO_MIC) : false);
             return b;
         } else if ("get_boolean".equals(method)) {
             if (arg == null) return null;

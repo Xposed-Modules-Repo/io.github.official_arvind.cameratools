@@ -42,4 +42,8 @@ public class XposedHelpers {
     public static Object callMethod(Object obj, String methodName, Object... args) {
         return null;
     }
+
+    public static Object callStaticMethod(Class<?> clazz, String methodName, Object... args) {
+        return null;
+    }
 }
