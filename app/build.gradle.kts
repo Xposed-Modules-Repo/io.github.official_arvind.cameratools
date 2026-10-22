@@ -10,8 +10,8 @@ android {
         applicationId = "io.github.official_arvind.cameratools"
         minSdk = 29
         targetSdk = 34
-        versionCode = 101
-        versionName = "1.1.0"
+        versionCode = 131
+        versionName = "1.3.1"
     }
 
     buildTypes {

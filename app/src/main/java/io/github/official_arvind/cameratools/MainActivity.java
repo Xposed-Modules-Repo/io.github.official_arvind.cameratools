@@ -272,6 +272,23 @@ public class MainActivity extends Activity {
         } catch (Throwable ignored) {}
     }
 
+    private static String getSuPath() {
+        String[] locations = {
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/sbin/su",
+            "/data/adb/ksu/bin/su",
+            "/data/adb/ap/bin/su"
+        };
+        for (String loc : locations) {
+            File f = new File(loc);
+            if (f.exists()) {
+                return loc;
+            }
+        }
+        return "/system/bin/su";
+    }
+
     private void syncPrefsWithRoot(final boolean showToast) {
         new Thread(new Runnable() {
             @Override
@@ -308,7 +325,7 @@ public class MainActivity extends Activity {
                             "  fi\n" +
                             "done\n";
 
-                        Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", script});
+                        Process p = Runtime.getRuntime().exec(new String[]{getSuPath(), "-c", script});
                         try { p.getInputStream().close(); } catch (Throwable ignored) {}
                         try { p.getErrorStream().close(); } catch (Throwable ignored) {}
                         int exitCode = p.waitFor();
@@ -429,7 +446,7 @@ public class MainActivity extends Activity {
             public void run() {
                 syncPrefsWithRoot(false);
                 try {
-                    Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", "am force-stop com.android.camera; am force-stop com.miui.camera"});
+                    Process p = Runtime.getRuntime().exec(new String[]{getSuPath(), "-c", "am force-stop com.android.camera; am force-stop com.miui.camera"});
                     try { p.getInputStream().close(); } catch (Throwable ignored) {}
                     try { p.getErrorStream().close(); } catch (Throwable ignored) {}
                     p.waitFor();

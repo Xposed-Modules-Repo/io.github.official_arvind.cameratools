@@ -4,6 +4,20 @@ All notable changes to the **CameraTools** project are documented in this file.
 
 ---
 
+## [v1.3.1] - 2026-10-22 (Security & Code Quality Release)
+
+### 🛡️ Code Scanning, Security & Code Quality Hardening
+* **CodeQL Relative Command Execution Hardening (CWE-78 / Alerts #7 & #8)**:
+  * Implemented secure absolute binary path resolution (`getSuPath()`) querying trusted root binary paths (`/system/bin/su`, `/system/xbin/su`, `/sbin/su`, `/data/adb/ksu/bin/su`, `/data/adb/ap/bin/su`), completely resolving PATH environment variable hijacking risks.
+* **Android Application Backup Security Hardening (Alert #4)**:
+  * Enforced `android:allowBackup="false"` in `AndroidManifest.xml` to prevent unauthorized ADB data backup extraction of camera system preferences.
+* **GitHub Actions Supply Chain Hardening (Alert #1)**:
+  * Pinned `softprops/action-gh-release` in `.github/workflows/mirror-release.yml` to immutable commit SHA `c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda` (`v2.2.1`), resolving unpinned action warnings.
+* **Gradle Build Tooling Modernization**:
+  * Upgraded Android Gradle Plugin to `8.7.3` in `build.gradle.kts` and synced `app/build.gradle.kts` to version `1.3.1` (code `131`).
+
+---
+
 ## [v1.3.0] - 2026-10-22 (Official Release)
 
 ### 🐛 Critical Bug Fixes & Independent Audit Verification
