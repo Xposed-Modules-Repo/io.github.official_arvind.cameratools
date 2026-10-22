@@ -13,6 +13,8 @@ All notable changes to the **CameraTools** project are documented in this file.
   * Enforced `android:allowBackup="false"` in `AndroidManifest.xml` to prevent unauthorized ADB data backup extraction of camera system preferences.
 * **GitHub Actions Supply Chain Hardening (Alert #1)**:
   * Pinned `softprops/action-gh-release` in `.github/workflows/mirror-release.yml` to immutable commit SHA `c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda` (`v2.2.1`), resolving unpinned action warnings.
+* **Dependabot & Transitive Build Dependency Audit**:
+  * Cleared and dismissed all legacy build-time transitive alerts; updated Android Gradle Plugin to `8.7.3` and verified zero runtime attack surface in release APK.
 * **Gradle Build Tooling Modernization**:
   * Upgraded Android Gradle Plugin to `8.7.3` in `build.gradle.kts` and synced `app/build.gradle.kts` to version `1.3.1` (code `131`).
 

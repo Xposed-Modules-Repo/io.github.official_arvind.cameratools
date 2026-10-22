@@ -51,3 +51,5 @@ xposed-rewrite
 
 *.py
 scratch/
+
+release_notes_*.md
