@@ -18,9 +18,17 @@
 
 ---
 
+> [!IMPORTANT]
+> **Official Upstream Repository**: The source code, issue tracker, pull requests, and official releases for this module are developed and maintained at:  
+> **👉 [https://github.com/official-Arvind/CameraTools](https://github.com/official-Arvind/CameraTools)**  
+> 
+> *This repository (Xposed-Modules-Repo/io.github.official_arvind.cameratools) serves as the distribution and catalog metadata entry for LSPosed / Xposed Module Repository indexing.*
+
+---
+
 ## 🌟 Changelog & Release Notes
 
-For detailed release notes, bug fixes, and version history, please see **[CHANGELOG.md](CHANGELOG.md)**.
+For detailed release notes, bug fixes, and version history, please see **[CHANGELOG.md on GitHub](https://github.com/official-Arvind/CameraTools/blob/main/CHANGELOG.md)**.
 
 ---
 
