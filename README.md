@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/official-Arvind/CameraTools/releases/tag/v1.3.1"><img src="https://img.shields.io/badge/Release-v1.3.1-blue?style=for-the-badge&logo=github" alt="v1.3.1"></a>
+  <a href="https://github.com/official-Arvind/CameraTools/releases/tag/v1.3.2"><img src="https://img.shields.io/badge/Release-v1.3.2-blue?style=for-the-badge&logo=github" alt="v1.3.2"></a>
   <img src="https://img.shields.io/badge/Android-13%20%7C%2014%20(MIUI%20%2F%20HyperOS%20%2F%20AOSP)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 13/14">
   <img src="https://img.shields.io/badge/Root-Optional%20(Recommended)-green?style=for-the-badge&logo=superuser" alt="Root Optional">
   <img src="https://img.shields.io/badge/Xposed-API_93%2B%20(LSPosed%20%2F%20Vector)-ff69b4?style=for-the-badge" alt="Xposed API 93+">
@@ -18,17 +18,9 @@
 
 ---
 
-> [!IMPORTANT]
-> **Official Upstream Repository**: The source code, issue tracker, pull requests, and official releases for this module are developed and maintained at:  
-> **👉 [https://github.com/official-Arvind/CameraTools](https://github.com/official-Arvind/CameraTools)**  
-> 
-> *This repository (Xposed-Modules-Repo/io.github.official_arvind.cameratools) serves as the distribution and catalog metadata entry for LSPosed / Xposed Module Repository indexing.*
-
----
-
 ## 🌟 Changelog & Release Notes
 
-For detailed release notes, bug fixes, and version history, please see **[CHANGELOG.md on GitHub](https://github.com/official-Arvind/CameraTools/blob/main/CHANGELOG.md)**.
+For detailed release notes, bug fixes, and version history, please see **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
@@ -93,7 +85,7 @@ We have designed CameraTools specifically to support custom ROMs such as **Linea
 ### How to Test on AOSP:
 
 1. **Install Module**:
-   * Download and install the latest `v1.3.1` APK from [Releases](https://github.com/official-Arvind/CameraTools/releases).
+   * Download and install the latest `v1.3.2` APK from [Releases](https://github.com/official-Arvind/CameraTools/releases).
 2. **Grant Superuser (Root) Permissions**:
    * Open the **CameraTools** app. When prompted by Magisk, KernelSU, or APatch, tap **Grant** (Always Allow) so the app can sync settings directly to target camera data directories and execute quick camera restarts.
 3. **Enable in LSPosed / Vector**:
@@ -132,7 +124,7 @@ We have designed CameraTools specifically to support custom ROMs such as **Linea
    * Root: **Magisk**, **KernelSU**, or **APatch** (Superuser permissions granted to CameraTools)
    * Framework: **LSPosed (Zygisk)** or **Vector** installed and active
 2. **Setup Steps**:
-   * Install `io.github.official_arvind.cameratools-v1.3.1.apk`.
+   * Install `io.github.official_arvind.cameratools-v1.3.2.apk`.
    * Open **CameraTools** and grant root permission.
    * Activate module in LSPosed / Vector and select camera app(s) in scope.
    * Reboot device or restart zygote.
@@ -143,7 +135,7 @@ We have designed CameraTools specifically to support custom ROMs such as **Linea
 ## ⚠️ Disclaimer & Safety
 
 * **Hardware Heat**: Bypassing thermal shutdown limits during extended 4K60 video recording or high ambient temperatures will cause the device to heat up. Use common sense and avoid leaving recording unattended in direct sunlight.
-* **Camera Sensor Support**: 50MP RAW and 50MP Normal Photo modes utilize the full sensor layout of the primary Sony IMX766. These modes are strictly bound to Camera ID 0 (rear main lens); the ultra-wide and front cameras will continue to operate at their respective native resolutions without crashing.
+* **Camera Sensor Support**: Pro RAW (12.5MP native Bayer stream) and 50MP Normal Photo modes utilize the primary Sony IMX766 sensor. On the Dimensity 1080 (ruby), the MediaTek Camera HAL exposes RAW at the native 12.5MP 4-in-1 binned Bayer resolution (50MP is handled via ISP hardware remosaic for JPEG). These modes are strictly bound to Camera ID 0 (rear main lens); the ultra-wide and front cameras continue to operate at their respective native resolutions.
 
 ---
 
